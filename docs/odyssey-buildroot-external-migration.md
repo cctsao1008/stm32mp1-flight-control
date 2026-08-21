@@ -1,383 +1,136 @@
-# ODYSSEY STM32MP157C BR2_EXTERNAL Migration Plan
+# Odyssey BR2_EXTERNAL Migration
 
-## 1. Purpose
+## Status
 
-This document defines how the validated Odyssey STM32MP157C Buildroot customizations should be moved out of a locally modified upstream Buildroot checkout and into this repository as a project-owned `BR2_EXTERNAL` tree.
+Completed.
 
-The goal is to make the platform reproducible from:
+The validated Odyssey STM32MP157C Buildroot configuration has been migrated from a locally modified upstream Buildroot working tree into this repository's project-owned `BR2_EXTERNAL` tree.
+
+The authoritative architecture is now:
 
 ```text
-clean Buildroot 2026.05.1
+third_party/buildroot/     pinned upstream Buildroot submodule
         +
-stm32mp1-flight-control repository
+buildroot/                 project BR2_EXTERNAL tree
+        +
+scripts/                   build / clean / verify wrappers
         |
         v
-validated sdcard.img
+output/odyssey/images/sdcard.img
 ```
 
-without manually editing files inside the upstream Buildroot source tree.
-
----
-
-## 2. Why Migrate
-
-The current working implementation was developed under:
+## Authoritative inputs
 
 ```text
-~/github/buildroot-2026.05.1/
+buildroot/configs/stm32mp1_flight_odyssey_defconfig
+buildroot/board/odyssey/linux.config
+buildroot/board/odyssey/genimage.cfg
+buildroot/board/odyssey/patches/linux/9999-odyssey-enable-fs-usb-device.patch
+buildroot/board/odyssey/overlay/boot/extlinux/extlinux.conf
+buildroot/board/odyssey/overlay/etc/inittab
+buildroot/board/odyssey/overlay/etc/init.d/S50usb-acm
 ```
 
-with persistent customizations stored under the Odyssey board directory in that Buildroot tree.
-
-That is acceptable during bring-up, but it has several maintenance risks:
-
-- a fresh Buildroot checkout does not contain project modifications
-- a future Buildroot upgrade can overwrite or obscure local board changes
-- Git history for the flight-control project does not automatically capture the exact build inputs
-- another developer cannot reproduce the image from this repository alone
-- generated and persistent files can become mixed during debugging
-
-A project-owned external tree removes this ambiguity.
-
----
-
-## 3. Target Repository Layout
-
-Recommended target structure:
+Buildroot is pinned at:
 
 ```text
-stm32mp1-flight-control/
-├── buildroot/
-│   ├── external.desc
-│   ├── external.mk
-│   ├── Config.in
-│   ├── configs/
-│   │   └── stm32mp157c_odyssey_flight_defconfig
-│   └── board/
-│       └── odyssey/
-│           ├── linux.config
-│           ├── genimage.cfg
-│           ├── patches/
-│           │   └── linux/
-│           │       └── 9999-odyssey-enable-fs-usb-device.patch
-│           └── overlay/
-│               ├── boot/
-│               │   └── extlinux/
-│               │       └── extlinux.conf
-│               └── etc/
-│                   ├── inittab
-│                   └── init.d/
-│                       └── S50usb-acm
-├── docs/
-└── README.md
+2026.05.1
+cb857ba4c87a93e5265a9e4a3f32071abf39e14a
 ```
 
-The exact final defconfig name may be adjusted, but it should be project-specific rather than silently modifying the upstream Odyssey defconfig in place.
-
----
-
-## 4. External-tree Metadata
-
-A normal external tree contains:
+The migration build was validated from repository revision:
 
 ```text
-buildroot/external.desc
-buildroot/external.mk
-buildroot/Config.in
+e20e422730c2e6015a824faf0061ebe91fe9da38
 ```
 
-Representative `external.desc`:
+## Validation result
+
+A fresh recursive clone successfully completed a clean Buildroot build using only the pinned submodule and repository-owned BR2_EXTERNAL tree.
+
+Validated results:
 
 ```text
-name: STM32MP1_FLIGHT
- desc: STM32MP1 flight-control Buildroot external tree
+Linux 6.6.0 boots on Odyssey
+root=PARTLABEL=rootfs rootwait
+rootfs mounts successfully
+final DTB contains the validated USBPHYC / DWC2 FS-device configuration
+no historical DWC2 soft-reset timeout
+ConfigFS CDC ACM gadget binds automatically
+/dev/ttyGS0 exists
+UDC = 49000000.usb-otg
+UDC state = configured
+Windows enumerates USB Serial Device (COM25)
+Buildroot shell is usable over CDC ACM
 ```
 
-Representative `external.mk`:
-
-```make
-include $(sort $(wildcard $(BR2_EXTERNAL_STM32MP1_FLIGHT_PATH)/package/*/*.mk))
-```
-
-If the project has no custom Buildroot packages yet, this file can remain minimal.
-
-Representative `Config.in`:
+The final DTB is byte-for-byte identical across the historical validated build and repeated clean BR2_EXTERNAL builds:
 
 ```text
-# Project-specific packages may be sourced here later.
+878fb69ca251bb38e9118521b3f2464276a6af408cf52688065b0251c7af2d50
 ```
 
-Do not add unnecessary custom packages merely to justify the external tree. The initial value is ownership of board configuration and reproducibility.
+## Historical working tree
 
----
+The former `~/github/buildroot-2026.05.1` tree is no longer the project source of truth.
 
-## 5. Files to Migrate
+It may be kept temporarily as historical/debug evidence, but project changes must not be maintained there in parallel.
 
-The following working files should be copied from the validated local Buildroot tree into the repository-owned external tree.
-
-### Kernel config
-
-Current source:
+Historical/backup files such as the following are intentionally not active build inputs:
 
 ```text
-buildroot-2026.05.1/board/seeed/stm32mp157c-odyssey/linux.config
+genimage.cfg.bak
+linux.config.before-usb-gadget
+patches-linux-5.10-backup/*
 ```
 
-Target:
+The historical rootfs was also found to contain stale Linux 5.10.1 module metadata alongside Linux 6.6.0 metadata, reinforcing the use of clean repository builds as the authoritative baseline.
+
+## Artifact reproducibility note
+
+Functional reproducibility is validated.
+
+Byte-for-byte image reproducibility is not yet enabled. Repeated clean builds show expected generated differences from:
 
 ```text
-stm32mp1-flight-control/buildroot/board/odyssey/linux.config
+kernel UTS_VERSION timestamp
+BusyBox embedded build timestamp
+ext4 UUID / creation metadata
+FAT volume serial / timestamps
+GPT disk GUID
 ```
 
-### Image layout
+This is separate deterministic-build work and is not a BR2_EXTERNAL migration failure.
 
-Current source:
+## Standard workflow
 
-```text
-buildroot-2026.05.1/board/seeed/stm32mp157c-odyssey/genimage.cfg
-```
-
-Target:
-
-```text
-stm32mp1-flight-control/buildroot/board/odyssey/genimage.cfg
-```
-
-### Linux patch
-
-Current source:
-
-```text
-buildroot-2026.05.1/board/seeed/stm32mp157c-odyssey/patches/linux/9999-odyssey-enable-fs-usb-device.patch
-```
-
-Target:
-
-```text
-stm32mp1-flight-control/buildroot/board/odyssey/patches/linux/9999-odyssey-enable-fs-usb-device.patch
-```
-
-### Rootfs overlay
-
-Current source:
-
-```text
-buildroot-2026.05.1/board/seeed/stm32mp157c-odyssey/overlay/
-```
-
-Target:
-
-```text
-stm32mp1-flight-control/buildroot/board/odyssey/overlay/
-```
-
-This includes at least:
-
-```text
-boot/extlinux/extlinux.conf
-etc/inittab
-etc/init.d/S50usb-acm
-```
-
----
-
-## 6. Project Defconfig Strategy
-
-The project should own a defconfig that starts from the validated Odyssey baseline but explicitly records project choices.
-
-The defconfig must capture at least:
-
-```text
-Linux 6.6 selection
-Linux 6.6 headers selection
-DTS name: st/stm32mp157c-odyssey
-board-specific kernel config path
-board-specific Linux patch path
-rootfs overlay path
-genimage configuration / post-image flow
-host tools needed for FAT generation
-```
-
-Do not rely on a manually edited top-level `.config` as the only record of these choices.
-
-The normal workflow should eventually be:
+Clone:
 
 ```bash
-make BR2_EXTERNAL=/path/to/stm32mp1-flight-control/buildroot \
-     stm32mp157c_odyssey_flight_defconfig
+git clone --recursive https://github.com/cctsao1008/stm32mp1-flight-control.git
+cd stm32mp1-flight-control
 ```
 
-followed by:
+Build:
 
 ```bash
-make BR2_EXTERNAL=/path/to/stm32mp1-flight-control/buildroot -j8
+./scripts/build.sh
 ```
 
----
-
-## 7. Path Conversion
-
-Paths that currently point into:
-
-```text
-board/seeed/stm32mp157c-odyssey/
-```
-
-must be converted to paths rooted in the external tree.
-
-The external-tree path variable will be based on the `name` in `external.desc`.
-
-For the proposed name:
-
-```text
-STM32MP1_FLIGHT
-```
-
-the generated variable is conceptually:
-
-```text
-BR2_EXTERNAL_STM32MP1_FLIGHT_PATH
-```
-
-Project-owned paths can then reference:
-
-```text
-$(BR2_EXTERNAL_STM32MP1_FLIGHT_PATH)/board/odyssey/...
-```
-
-The exact Buildroot configuration symbols used for kernel custom config, rootfs overlay, patches, and image-generation hooks should be validated against Buildroot 2026.05.1 when the migration is implemented.
-
----
-
-## 8. Migration Procedure
-
-Recommended migration sequence:
-
-```text
-1. Freeze current working Buildroot tree
-2. Record SHA256 hashes of current artifacts
-3. Copy persistent board files into repository
-4. Create external.desc / external.mk / Config.in
-5. Create project defconfig
-6. Point all board paths to BR2_EXTERNAL locations
-7. Start from a fresh Buildroot 2026.05.1 checkout
-8. Build using only BR2_EXTERNAL + project defconfig
-9. Compare generated DTB / GPT / rootfs content
-10. Flash and perform runtime validation
-11. Compare artifact hashes where reproducibility permits
-12. Declare BR2_EXTERNAL tree authoritative
-13. Stop maintaining duplicate project files in upstream Buildroot tree
-```
-
----
-
-## 9. Pre-migration Freeze
-
-Before copying files, record the current source and artifacts.
-
-Recommended commands in the working Buildroot tree:
+Verify:
 
 ```bash
-cd ~/github/buildroot-2026.05.1
-
-sha256sum \
-  output/images/sdcard.img \
-  output/images/zImage \
-  output/images/stm32mp157c-odyssey.dtb \
-  output/images/rootfs.ext4
+./scripts/verify-image.sh
 ```
 
-Also preserve:
+Clean generated output:
 
 ```bash
-cp .config /tmp/odyssey-buildroot-known-good.config
-cp output/build/linux-6.6/.config /tmp/odyssey-linux-known-good.config
+./scripts/clean.sh
 ```
 
-And capture the persistent board files:
+## Source-of-truth rule
 
-```bash
-find board/seeed/stm32mp157c-odyssey -maxdepth 5 -type f -print | sort
-```
+The repository `buildroot/` BR2_EXTERNAL tree is authoritative for Odyssey project-specific Buildroot inputs.
 
-This provides an audit reference for the migration.
-
----
-
-## 10. Fresh-build Validation
-
-The migration is not complete merely because Buildroot compiles.
-
-The new external-tree build must pass the same validation as the current working image.
-
-Required checks:
-
-```text
-[ ] Linux 6.6.0 boots
-[ ] root=PARTLABEL=rootfs rootwait
-[ ] rootfs mounts successfully
-[ ] final DTB contains USBPHYC + FS OTG + power dependency
-[ ] no DWC2 Soft Reset timeout
-[ ] ConfigFS gadget starts automatically
-[ ] /dev/ttyGS0 exists
-[ ] UDC reaches configured
-[ ] Windows enumerates USB Serial Device
-[ ] Buildroot login works over USB CDC ACM
-[ ] GPT contains devboot
-[ ] DEVBOOT contains zImage + DTB
-[ ] U-Boot still loads authoritative boot files from rootfs:/boot
-```
-
----
-
-## 11. Avoid Duplicate Sources of Truth
-
-During migration there will temporarily be two copies of the same board files:
-
-```text
-upstream Buildroot working tree
-project BR2_EXTERNAL tree
-```
-
-That state must be temporary.
-
-After the external-tree build is validated, the policy should be:
-
-```text
-project repository = authoritative
-upstream Buildroot checkout = disposable dependency
-output/* = disposable generated artifacts
-```
-
-Do not continue editing both locations in parallel.
-
----
-
-## 12. Version Upgrade Policy
-
-Once the external tree is authoritative, future Buildroot upgrades should follow this pattern:
-
-```text
-existing BR2_EXTERNAL
-       +
-new clean Buildroot version
-       |
-       v
-configuration migration
-       |
-       v
-build
-       |
-       v
-artifact + runtime regression validation
-```
-
-This makes a Buildroot version upgrade explicit and reviewable rather than mixing it with board-specific source changes.
-
----
-
-## 13. Current Status
-
-The `BR2_EXTERNAL` layout is the **target architecture**, but the migration must not be declared complete until the exact validated files from the current WSL Buildroot tree are copied into this repository and a fresh Buildroot checkout reproduces the working image.
-
-This distinction is intentional: documentation and scaffolding can be prepared in advance, but only a fresh-build runtime validation can establish the external tree as the new source of truth.
+Do not duplicate or manually maintain those project files inside `third_party/buildroot/` or another upstream Buildroot checkout.
