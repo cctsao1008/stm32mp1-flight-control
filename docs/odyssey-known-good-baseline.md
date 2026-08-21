@@ -33,10 +33,11 @@ scripts/build.sh           build entry point
 output/odyssey/            generated output
 ```
 
-Pinned Buildroot commit:
+Validated source revision for the migration build:
 
 ```text
-cb857ba4c87a93e5265a9e4a3f32071abf39e14a
+repository commit:          e20e422730c2e6015a824faf0061ebe91fe9da38
+Buildroot submodule commit: cb857ba4c87a93e5265a9e4a3f32071abf39e14a
 ```
 
 Validated Linux build identification observed at runtime:
