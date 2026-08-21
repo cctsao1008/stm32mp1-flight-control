@@ -1,20 +1,52 @@
 # Buildroot External Tree
 
-This directory is reserved for the project-owned Buildroot `BR2_EXTERNAL` tree for the Odyssey STM32MP157C platform.
+This directory is the project-owned Buildroot `BR2_EXTERNAL` tree for the Odyssey STM32MP157C platform.
 
-## Status
+## Ownership Boundary
 
-**Scaffold only — not yet the authoritative build source.**
-
-The current validated image was produced from a working Buildroot 2026.05.1 tree with board-specific changes under:
+The repository now deliberately separates upstream Buildroot from project customizations:
 
 ```text
-board/seeed/stm32mp157c-odyssey/
+third_party/buildroot/
+    upstream Buildroot 2026.05.1, pinned as a Git submodule
+
+buildroot/
+    project-owned BR2_EXTERNAL source
+
+output/odyssey/
+    generated Buildroot output, ignored by Git
 ```
 
-Those exact validated files still need to be copied into this repository and verified through a fresh Buildroot build before this external tree is declared authoritative.
+The Buildroot submodule is pinned to:
 
-Do not assume that the presence of this directory means the external-tree migration is complete.
+```text
+cb857ba4c87a93e5265a9e4a3f32071abf39e14a
+```
+
+which is the Buildroot `2026.05.1` release commit.
+
+## Current Status
+
+**The submodule infrastructure is established, but the BR2_EXTERNAL migration is not yet fully authoritative.**
+
+The currently validated working image was produced from a locally modified Buildroot 2026.05.1 tree with board-specific changes under:
+
+```text
+~/github/buildroot-2026.05.1/board/seeed/stm32mp157c-odyssey/
+```
+
+Those exact validated files still need to be imported into this directory and verified through a clean build using only:
+
+```text
+third_party/buildroot/
+        +
+buildroot/
+        |
+        v
+output/odyssey/images/sdcard.img
+```
+
+Do not recreate the board files from memory. Import the exact validated files from the working WSL tree.
 
 ## Target Layout
 
@@ -24,7 +56,7 @@ buildroot/
 ├── external.mk
 ├── Config.in
 ├── configs/
-│   └── stm32mp157c_odyssey_flight_defconfig
+│   └── stm32mp1_flight_odyssey_defconfig
 └── board/
     └── odyssey/
         ├── linux.config
@@ -39,21 +71,61 @@ buildroot/
                 └── init.d/S50usb-acm
 ```
 
+## Intended Build Command
+
+After the exact validated board files and project defconfig are imported:
+
+```bash
+./scripts/build.sh
+```
+
+Equivalent manual flow:
+
+```bash
+ROOT="$PWD"
+
+make -C "$ROOT/third_party/buildroot" \
+    O="$ROOT/output/odyssey" \
+    BR2_EXTERNAL="$ROOT/buildroot" \
+    stm32mp1_flight_odyssey_defconfig
+
+make -C "$ROOT/third_party/buildroot" \
+    O="$ROOT/output/odyssey" \
+    BR2_EXTERNAL="$ROOT/buildroot" \
+    -j8
+```
+
+Verify generated artifacts with:
+
+```bash
+./scripts/verify-image.sh
+```
+
 ## Migration Rule
 
 The migration is complete only when:
 
 1. the exact validated board files are imported from the current WSL Buildroot tree,
-2. a clean Buildroot 2026.05.1 checkout builds using this external tree,
-3. the generated DTB, GPT layout, rootfs overlay, and boot artifacts are verified,
-4. the board boots successfully,
-5. USB CDC ACM reaches `configured`,
-6. Windows obtains a COM port,
-7. Buildroot login works over `/dev/ttyGS0`, and
-8. the known-good artifact hashes are recorded.
+2. `stm32mp1_flight_odyssey_defconfig` is created from the validated configuration,
+3. a clean Buildroot 2026.05.1 submodule build succeeds using this external tree,
+4. the generated DTB, GPT layout, rootfs overlay, and boot artifacts are verified,
+5. the board boots successfully,
+6. USB CDC ACM reaches `configured`,
+7. Windows obtains a COM port,
+8. Buildroot login works over `/dev/ttyGS0`, and
+9. the known-good artifact hashes are recorded.
 
-See:
+After that point the policy becomes:
 
+```text
+third_party/buildroot/ = pinned upstream dependency
+buildroot/             = authoritative project customization
+output/                = disposable generated output
+```
+
+## References
+
+- `docs/odyssey-buildroot-submodule-workflow.md`
 - `docs/odyssey-buildroot-external-migration.md`
 - `docs/odyssey-fresh-clone-reproduction.md`
 - `docs/odyssey-known-good-baseline.md`
