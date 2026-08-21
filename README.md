@@ -73,6 +73,37 @@ The exact boundary is intentionally measurable rather than assumed. Functions ma
 - **Inter-processor communication:** OpenAMP / RPMsg, with shared memory where appropriate
 - **Primary sensing:** modern external SPI IMU
 
+## Buildroot Platform Structure
+
+Upstream Buildroot is pinned as a Git submodule while Odyssey-specific changes remain project-owned through `BR2_EXTERNAL`:
+
+```text
+third_party/buildroot/     upstream Buildroot submodule
+buildroot/                 project BR2_EXTERNAL tree
+scripts/                   build / clean / verification wrappers
+output/                    generated output, ignored by Git
+```
+
+The current submodule is pinned to Buildroot `2026.05.1`:
+
+```text
+cb857ba4c87a93e5265a9e4a3f32071abf39e14a
+```
+
+Clone with the dependency initialized:
+
+```bash
+git clone --recursive https://github.com/cctsao1008/stm32mp1-flight-control.git
+```
+
+or initialize it later with:
+
+```bash
+git submodule update --init --recursive
+```
+
+The exact validated Odyssey board files still need to be imported from the current WSL Buildroot working tree before `BR2_EXTERNAL` is declared authoritative.
+
 ## RasPilot Reference
 
 RasPilot V1.1 is used as a historical and optional hardware reference.
@@ -99,13 +130,15 @@ Recommended starting points:
 
 - [Buildroot Build Flow](docs/odyssey-buildroot-build-flow.md)
 - [Buildroot Modification Map](docs/odyssey-buildroot-modification-map.md)
+- [Buildroot Submodule Workflow](docs/odyssey-buildroot-submodule-workflow.md)
 - [Known-good Baseline](docs/odyssey-known-good-baseline.md)
 - [Fresh-clone Reproduction](docs/odyssey-fresh-clone-reproduction.md)
 - [BR2_EXTERNAL Migration Plan](docs/odyssey-buildroot-external-migration.md)
 - [USB CDC ACM Bring-up](docs/odyssey-usb-cdc-acm-bringup.md)
 - [DEVBOOT FAT Partition](docs/odyssey-devboot-fat-partition.md)
-
-The long-term platform-build target is a clean upstream Buildroot checkout plus this repository, with all persistent board customizations owned by a project `BR2_EXTERNAL` tree.
+- [RasPilot V1.1 Hardware Reference](docs/raspilot-v1.1-hardware-reference.md)
+- [RasPilot vs STM32MP1 Architecture](docs/raspilot-vs-stm32mp1-architecture.md)
+- [RasPilot Reference Mapping](docs/raspilot-reference-mapping.md)
 
 ## References
 
@@ -113,5 +146,6 @@ The long-term platform-build target is a clean upstream Buildroot checkout plus 
 - [STM32MP157C](https://www.st.com/en/microcontrollers-microprocessors/stm32mp157c.html)
 - [STM32CubeMP1](https://github.com/STMicroelectronics/STM32CubeMP1)
 - [ArduPilot](https://github.com/ArduPilot/ardupilot)
+- [Buildroot](https://github.com/buildroot/buildroot)
 - [RasPilot Hardware](https://github.com/raspilot/Hardware/tree/RASPILOT_V1)
 - [RasPilot Documentation](https://github.com/raspilot/docs)
