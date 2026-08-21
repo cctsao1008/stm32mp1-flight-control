@@ -11,6 +11,13 @@ scripts/                   build / clean / verify wrappers
 output/odyssey/            generated output
 ```
 
+Validated migration source revision:
+
+```text
+repository: e20e422730c2e6015a824faf0061ebe91fe9da38
+Buildroot:  cb857ba4c87a93e5265a9e4a3f32071abf39e14a
+```
+
 The BR2_EXTERNAL migration has passed clean-clone build and hardware runtime validation. This directory is the source of truth for persistent Odyssey Buildroot customizations.
 
 ## Defconfig
