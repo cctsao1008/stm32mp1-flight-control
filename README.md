@@ -12,7 +12,7 @@ The platform combines:
 
 ## Buildroot platform
 
-The Odyssey Buildroot platform is now reproduced from this repository using a pinned upstream Buildroot submodule plus a project-owned `BR2_EXTERNAL` tree:
+The Odyssey Buildroot platform is reproduced from this repository using a pinned upstream Buildroot submodule plus a project-owned `BR2_EXTERNAL` tree:
 
 ```text
 third_party/buildroot/     Buildroot 2026.05.1 submodule
@@ -27,7 +27,7 @@ Pinned Buildroot revision:
 cb857ba4c87a93e5265a9e4a3f32071abf39e14a
 ```
 
-The clean repository build has passed hardware validation on the Odyssey board with Linux 6.6 and USB CDC ACM.
+The migration from the former modified upstream Buildroot tree is complete. The clean repository build has passed hardware validation on the Odyssey board with Linux 6.6 and USB CDC ACM.
 
 ### Clone and build
 
