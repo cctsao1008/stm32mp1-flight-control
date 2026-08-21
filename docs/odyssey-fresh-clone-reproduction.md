@@ -95,6 +95,28 @@ Windows USB Serial Device (COM25)
 Buildroot shell over CDC ACM
 ```
 
+Explicit runtime evidence:
+
+```text
+cat /sys/class/udc/49000000.usb-otg/state
+configured
+
+cat /sys/kernel/config/usb_gadget/g1/UDC
+49000000.usb-otg
+
+cat /proc/cmdline
+root=PARTLABEL=rootfs rootwait
+
+mount | grep ' on / '
+/dev/root on / type ext4 (rw,relatime)
+```
+
+Windows PowerShell showed:
+
+```text
+COM25    USB Serial Device (COM25)
+```
+
 ## Hardware-validated clean-build hashes
 
 ```text
