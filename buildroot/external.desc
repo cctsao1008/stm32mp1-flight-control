@@ -1,0 +1,2 @@
+name: STM32MP1_FLIGHT
+ desc: STM32MP1 flight-control Buildroot external tree
