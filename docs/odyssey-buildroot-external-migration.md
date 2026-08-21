@@ -70,6 +70,17 @@ The final DTB is byte-for-byte identical across the historical validated build a
 878fb69ca251bb38e9118521b3f2464276a6af408cf52688065b0251c7af2d50
 ```
 
+## Hardware-validated clean-build hashes
+
+```text
+sdcard.img:                    82fafbb3ac93151cc0eba44b40ba75cc77ec5ffb43717441c5ac9655a31a0821
+zImage:                        8b1141ad967f1a98f0278a5c5ae8a4ea1830597303c3f3d8043f99e699e5ebe9
+stm32mp157c-odyssey.dtb:       878fb69ca251bb38e9118521b3f2464276a6af408cf52688065b0251c7af2d50
+rootfs.ext4:                   c56a6e8fc011ce3e19e16019ba892f9b3eadc31c7dc9d6986263c32f5b0faa8e
+```
+
+These hashes identify the validated build but are not all expected to repeat byte-for-byte until deterministic-build controls are enabled.
+
 ## Historical working tree
 
 The former `~/github/buildroot-2026.05.1` tree is no longer the project source of truth.
