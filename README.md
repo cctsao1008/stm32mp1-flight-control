@@ -91,6 +91,22 @@ The most important questions are architectural rather than computational:
 - Where is the practical knee point for IMU, control-loop, and actuator update rates?
 - Can the M4 domain maintain deterministic safety behavior when the Linux domain stalls, restarts, or fails?
 
+## Documentation
+
+Platform bring-up and Buildroot documentation is maintained under [`docs/`](docs/README.md).
+
+Recommended starting points:
+
+- [Buildroot Build Flow](docs/odyssey-buildroot-build-flow.md)
+- [Buildroot Modification Map](docs/odyssey-buildroot-modification-map.md)
+- [Known-good Baseline](docs/odyssey-known-good-baseline.md)
+- [Fresh-clone Reproduction](docs/odyssey-fresh-clone-reproduction.md)
+- [BR2_EXTERNAL Migration Plan](docs/odyssey-buildroot-external-migration.md)
+- [USB CDC ACM Bring-up](docs/odyssey-usb-cdc-acm-bringup.md)
+- [DEVBOOT FAT Partition](docs/odyssey-devboot-fat-partition.md)
+
+The long-term platform-build target is a clean upstream Buildroot checkout plus this repository, with all persistent board customizations owned by a project `BR2_EXTERNAL` tree.
+
 ## References
 
 - [Seeed Studio ODYSSEY-STM32MP157C](https://wiki.seeedstudio.com/ODYSSEY-STM32MP157C/)
