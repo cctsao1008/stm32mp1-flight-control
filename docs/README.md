@@ -1,8 +1,8 @@
 # Documentation
 
-This directory contains the engineering documentation for the STM32MP1 flight-control platform bring-up and implementation.
+This directory contains the engineering documentation for the STM32MP1 flight-control platform bring-up, implementation, reference architecture, and reproducibility work.
 
-The documentation is organized by purpose rather than chronologically. Start with the build flow, then use the feature-specific bring-up and implementation documents as needed.
+The documentation is organized by purpose rather than chronologically. Start with the build flow for platform maintenance, use the feature-specific bring-up documents for implementation details, and use the RasPilot documents for historical architecture comparison and function mapping.
 
 ## Getting Started
 
@@ -74,15 +74,79 @@ for the current validated Odyssey customizations.
   - partition verification
   - artifact inspection
 
+## RasPilot Historical Reference
+
+RasPilot V1.1 is used as a **historical architecture and hardware-partitioning reference**, not as the target hardware design.
+
+### [RasPilot V1.1 Hardware Reference](raspilot-v1.1-hardware-reference.md)
+
+Detailed schematic-oriented reference covering:
+
+- Raspberry Pi 40-pin host interface
+- shared SPI and sensor DRDY topology
+- FRAM
+- serial, I2C, analog pressure, and auxiliary ADC interfaces
+- L3GD20, LSM303D, MPU-9250/6500-era sensor blocks
+- MS5611 barometer
+- STM32F10x I/O processor
+- explicit timer allocation for eight actuator channels
+- PPM, S.Bus, Spektrum/DSM, and RSSI
+- servo/actuator outputs
+- safety switch, LEDs, and alarm
+- CAN-related signals
+- power rails, sensing, and reset sequencing
+- production-test access
+- design principles worth retaining and legacy parts that should not be copied
+
+### [RasPilot V1.1 vs STM32MP1 Architecture](raspilot-vs-stm32mp1-architecture.md)
+
+Architecture-level comparison covering:
+
+```text
+Raspberry Pi / Linux       -> Cortex-A7 / Linux
+external STM32F10x         -> integrated Cortex-M4
+board-level processor IPC  -> OpenAMP / RPMsg / shared memory
+STM32 actuator timing      -> M4 timer / DMA actuator engine
+STM32 RC handling          -> M4 receiver domain
+local safety supervision   -> M4 safety / watchdog boundary
+```
+
+The document also discusses sensor ownership, actuator authority, RC timing, safety, power monitoring, watchdog philosophy, A7/M4 message classes, and the risks introduced by integrating both domains into one SoC.
+
+### [RasPilot Reference Mapping to STM32MP1](raspilot-reference-mapping.md)
+
+Function-by-function engineering mapping covering:
+
+- primary and secondary IMU
+- DRDY and timestamping
+- barometer / magnetometer ownership
+- PPM / S.Bus / receiver protocols
+- PWM and DShot
+- safety switch / indicators / alarm
+- watchdogs
+- ADC / power sensing
+- serial / GPS
+- CAN
+- I2C
+- FRAM / persistent fault state
+- production-test access
+- connector and protection philosophy
+- proposed A7/M4 peripheral ownership
+- Odyssey-specific validation checklist
+- staged bring-up order
+- RasPilot feature decision matrix
+
+Use this document before turning the historical reference into actual STM32MP157C pin assignments.
+
 ## Reproducibility and Maintenance
 
-The next documents in this area are intended to make the platform reproducible from a clean environment:
+The following documents are intended to make the platform reproducible from a clean environment:
 
-- `odyssey-known-good-baseline.md`
+- [Known-good Baseline](odyssey-known-good-baseline.md)
   - validated versions, boot expectations, and artifact hashes
-- `odyssey-fresh-clone-reproduction.md`
+- [Fresh-clone Reproduction](odyssey-fresh-clone-reproduction.md)
   - clean-machine / clean-Buildroot reproduction procedure
-- `odyssey-buildroot-external-migration.md`
+- [BR2_EXTERNAL Migration](odyssey-buildroot-external-migration.md)
   - migration from direct Buildroot-tree modifications to a project-owned `BR2_EXTERNAL`
 
 These documents are part of the platform-maintenance strategy and should be kept synchronized with the actual source tree.
@@ -109,9 +173,20 @@ Known-good baseline
 
 Fresh-clone procedure
     = proof that the repository is reproducible
+
+Historical reference
+    = what an earlier design actually did
+
+Architecture comparison
+    = which historical principles still map to STM32MP1
+
+Reference mapping
+    = how those functions could map into A7/M4 ownership and future hardware
 ```
 
 A generated build directory must never be treated as authoritative documentation or persistent source.
+
+Historical reference documents must also avoid converting old component choices into new requirements. RasPilot is primarily useful for architectural intent, deterministic I/O partitioning, safety boundaries, and hardware-interface patterns.
 
 The long-term target is:
 
@@ -125,4 +200,7 @@ reproducible sdcard.img
         |
         v
 validated Odyssey platform
+        |
+        v
+measured A7/M4 flight-control architecture
 ```
