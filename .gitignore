@@ -1,0 +1,9 @@
+# Generated Buildroot output
+/output/
+
+# Editor / OS noise
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
