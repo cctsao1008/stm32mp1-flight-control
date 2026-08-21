@@ -24,6 +24,21 @@ Host:           WSL Ubuntu
 Build jobs:     make -j8
 ```
 
+The authoritative build source is now this repository using:
+
+```text
+third_party/buildroot/     pinned upstream Buildroot submodule
+buildroot/                 project-owned BR2_EXTERNAL tree
+scripts/build.sh           build entry point
+output/odyssey/            generated output
+```
+
+Pinned Buildroot commit:
+
+```text
+cb857ba4c87a93e5265a9e4a3f32071abf39e14a
+```
+
 Validated Linux build identification observed at runtime:
 
 ```text
@@ -51,14 +66,14 @@ SD card
   +-- p5 devboot (FAT, convenience/debug only)
 ```
 
-U-Boot currently boots from partition 4:
+U-Boot boots from partition 4:
 
 ```text
 Scanning mmc 0:4...
 Found /boot/extlinux/extlinux.conf
 ```
 
-`DEVBOOT` is not currently authoritative for boot.
+`DEVBOOT` is not authoritative for boot.
 
 ---
 
@@ -70,27 +85,26 @@ Kernel command line:
 root=PARTLABEL=rootfs rootwait
 ```
 
-This is intentional.
+This is intentional. Do not replace it with a fixed `/dev/mmcblkXp4` path because SD/eMMC enumeration may change between kernel versions or configurations.
 
-Do not replace it with:
-
-```text
-root=/dev/mmcblk0p4
-```
-
-because Linux 6.6 may enumerate:
+Validated runtime evidence from the clean BR2_EXTERNAL image:
 
 ```text
-eMMC = mmcblk0
-SD   = mmcblk1
-```
-
-The working boot sequence has demonstrated:
-
-```text
+Kernel command line: root=PARTLABEL=rootfs rootwait
 Waiting for root device PARTLABEL=rootfs...
-EXT4-fs (mmcblk1p4): mounted ...
-VFS: Mounted root ...
+mmcblk0: p1 p2 p3 p4 p5
+VFS: Mounted root (ext4 filesystem) readonly on device 179:4.
+EXT4-fs (mmcblk0p4): re-mounted ... r/w.
+```
+
+Runtime shell verification:
+
+```text
+cat /proc/cmdline
+root=PARTLABEL=rootfs rootwait
+
+mount | grep ' on / '
+/dev/root on / type ext4 (rw,relatime)
 ```
 
 ---
@@ -108,39 +122,42 @@ STM32MP15 USB FS pins PA11/PA12
         -> acm.usb0
         -> /dev/ttyGS0
         -> BusyBox getty
-        -> Windows USB Serial Device (COMxx)
+        -> Windows USB Serial Device (COM25)
 ```
 
-Expected runtime log includes:
+Validated runtime evidence:
 
 ```text
 stm32-usbphyc 5a006000.usbphyc: registered rev:1.0
 dwc2 49000000.usb-otg: EPs: 9, dedicated fifos, 952 entries in SPRAM
+Starting USB CDC ACM gadget...
 USB UDC: 49000000.usb-otg
 dwc2 49000000.usb-otg: bound driver configfs-gadget.g1
 USB CDC ACM gadget started
 dwc2 49000000.usb-otg: new device is full-speed
+dwc2 49000000.usb-otg: new address 52
 ```
 
-Expected UDC state while connected to Windows:
+Explicit gadget checks:
 
-```bash
+```text
+ls -l /dev/ttyGS0
+crw--w---- 1 root root 247, 0 ... /dev/ttyGS0
+
 cat /sys/class/udc/49000000.usb-otg/state
-```
-
-Expected:
-
-```text
 configured
+
+cat /sys/kernel/config/usb_gadget/g1/UDC
+49000000.usb-otg
 ```
 
-Expected terminal behavior:
+Windows enumeration:
 
 ```text
-Welcome to Buildroot
-buildroot login: root
-#
+COM25    USB Serial Device (COM25)
 ```
+
+The Buildroot login shell is functional over the CDC ACM connection.
 
 ---
 
@@ -167,10 +184,13 @@ The final DTB must contain the equivalent of:
 };
 ```
 
-The inherited Linux 6.6 SoC definition also supplies:
+The inherited Linux 6.6 SoC definition supplies the USBPHYC/UTMI clock dependency. The validated final DTB contains:
 
 ```text
+compatible = "st,stm32mp15-fsotg", "snps,dwc2"
 clock-names = "otg", "utmi"
+dr_mode = "peripheral"
+status = "okay"
 ```
 
 The previous Linux 5.10.1 failure:
@@ -179,53 +199,36 @@ The previous Linux 5.10.1 failure:
 dwc2_core_reset: HANG! Soft Reset timeout GRSTCTL_CSFTRST
 ```
 
-must not appear.
+is not present in the validated clean-build boot.
 
 ---
 
 ## 7. Validated DEVBOOT Layout
 
-Expected GPT names:
+Expected GPT names and validated layout:
 
 ```text
-1  fsbl1
-2  fsbl2
-3  ssbl
-4  rootfs
-5  devboot
+1  fsbl1     206 KiB
+2  fsbl2     206 KiB
+3  ssbl      1011 KiB
+4  rootfs    60 MiB
+5  devboot   64 MiB
 ```
 
-A validated generated image showed approximately:
-
-```text
-p1  206 KiB
-p2  206 KiB
-p3  1011 KiB
-p4  60 MiB
-p5  64 MiB
-```
-
-Expected DEVBOOT contents:
+Validated DEVBOOT contents:
 
 ```text
 zImage
 stm32mp157c-odyssey.dtb
 ```
 
-Verification:
-
-```bash
-sgdisk -p output/images/sdcard.img
-mdir -i output/images/devboot.vfat ::
-```
+`DEVBOOT` is a convenience/debug FAT partition and does not control the normal boot path.
 
 ---
 
 ## 8. Known Non-blocking Messages
 
-Some boot messages are not currently treated as baseline failures unless they correlate with real functional problems.
-
-Examples observed during bring-up include:
+The following messages are not currently treated as baseline failures unless they correlate with a real functional problem:
 
 ```text
 invalid MAC address in OTP 00:00:00:00:00:00
@@ -233,68 +236,76 @@ No ethernet found.
 clk: failed to reparent ethck_k to pll4_p: -22
 mdio_bus ... MDIO device at address 7 is missing.
 Date/Time must be initialized
+dwc2 ... supply vusb_d not found, using dummy regulator
+dwc2 ... supply vusb_a not found, using dummy regulator
 ```
 
-These are outside the validated USB CDC ACM and SD-rootfs bring-up scope.
-
-The generated small GPT image may also report a backup-GPT placement warning after being written to a much larger SD card. That warning is tracked separately and does not invalidate the current five-partition boot result.
+A freshly written ext4 rootfs may also perform journal recovery on first boot and then remount read/write. The validated image completed that recovery successfully.
 
 ---
 
-## 9. Artifact Hash Record
+## 9. Authoritative Clean BR2_EXTERNAL Baseline
 
-The current frozen known-good Buildroot tree produced the following SHA256 values:
+The hardware-validated clean build was produced from the repository-owned BR2_EXTERNAL tree and flashed successfully to the Odyssey board.
+
+Validated artifact hashes from that build:
+
+```text
+sdcard.img:                    82fafbb3ac93151cc0eba44b40ba75cc77ec5ffb43717441c5ac9655a31a0821
+zImage:                        8b1141ad967f1a98f0278a5c5ae8a4ea1830597303c3f3d8043f99e699e5ebe9
+stm32mp157c-odyssey.dtb:       878fb69ca251bb38e9118521b3f2464276a6af408cf52688065b0251c7af2d50
+rootfs.ext4:                   c56a6e8fc011ce3e19e16019ba892f9b3eadc31c7dc9d6986263c32f5b0faa8e
+```
+
+These hashes identify the specific hardware-validated build, but not all generated artifacts are currently byte-for-byte reproducible across clean builds.
+
+Known deterministic-build differences include:
+
+```text
+kernel UTS_VERSION build timestamp
+BusyBox embedded build timestamp
+ext4 filesystem UUID / creation metadata
+FAT volume serial / timestamps
+GPT disk GUID
+```
+
+Therefore functional acceptance and deterministic byte reproducibility are tracked separately.
+
+---
+
+## 10. Historical Known-good Artifact Record
+
+Before the BR2_EXTERNAL migration, the modified upstream Buildroot working tree produced:
 
 ```text
 sdcard.img:                    863bfe155e523340a891fad8693b39562997352760c2f66c14b860da253b3992
 zImage:                        3b09a7ffbc6df19ff7dbca35a916a77d86bf89739f0a59601b775289bbdbfa92
 stm32mp157c-odyssey.dtb:       878fb69ca251bb38e9118521b3f2464276a6af408cf52688065b0251c7af2d50
 rootfs.ext4:                   8eb0f4e0ebc02dc85b4b9c026135b94e379399dcaf40e4d54bf52631b35aa9b5
+devboot.vfat:                  bfa76560eefb5c0e9fae1693324fb69eef2b1735d3ea601a4039aee9a8fd880b
+tf-a-stm32mp157c-odyssey.stm32: 3ca5ce1d77c3c33fa033f04507cfd8583ca48429203abcd6915b399df2b2fc2a
+u-boot.stm32:                  70fa1d13430d7e11de08cbe5e2b0e0306251044fad42ab0027056a158d75b366
 ```
 
-These hashes were captured from:
-
-```text
-~/github/buildroot-2026.05.1/output/images/
-```
-
-They are the comparison reference for the upcoming `BR2_EXTERNAL` fresh-build migration.
-
-Do not replace these hashes unless a new baseline has passed the full acceptance checklist.
+That historical rootfs was later found to contain stale `/lib/modules/5.10.1/` metadata alongside Linux 6.6.0 module metadata. Its hashes are preserved for historical comparison only and are no longer the authoritative clean-build target.
 
 ---
 
-## 10. Frozen Board-source Inventory
+## 11. Authoritative Board-owned Inputs
 
-The current working Buildroot tree contains the following board-specific files:
-
-```text
-board/seeed/stm32mp157c-odyssey/genimage.cfg
-board/seeed/stm32mp157c-odyssey/genimage.cfg.bak
-board/seeed/stm32mp157c-odyssey/linux.config
-board/seeed/stm32mp157c-odyssey/linux.config.before-usb-gadget
-board/seeed/stm32mp157c-odyssey/overlay/boot/extlinux/extlinux.conf
-board/seeed/stm32mp157c-odyssey/overlay/etc/init.d/S50usb-acm
-board/seeed/stm32mp157c-odyssey/overlay/etc/inittab
-board/seeed/stm32mp157c-odyssey/patches-linux-5.10-backup/0001-ARM-dts-stm32-fix-stm32mp157c-odyssey-card-detect.patch
-board/seeed/stm32mp157c-odyssey/patches-linux-5.10-backup/9998-dwc2-stm32mp15-fs-phy-before-reset.patch
-board/seeed/stm32mp157c-odyssey/patches-linux-5.10-backup/9999-odyssey-enable-fs-usb-device.patch
-board/seeed/stm32mp157c-odyssey/patches/linux/9999-odyssey-enable-fs-usb-device.patch
-board/seeed/stm32mp157c-odyssey/readme.txt
-```
-
-For the project-owned `BR2_EXTERNAL` tree, only the active source-of-truth files should be imported initially:
+The project-owned build inputs are now:
 
 ```text
-genimage.cfg
-linux.config
-overlay/boot/extlinux/extlinux.conf
-overlay/etc/init.d/S50usb-acm
-overlay/etc/inittab
-patches/linux/9999-odyssey-enable-fs-usb-device.patch
+buildroot/configs/stm32mp1_flight_odyssey_defconfig
+buildroot/board/odyssey/linux.config
+buildroot/board/odyssey/genimage.cfg
+buildroot/board/odyssey/patches/linux/9999-odyssey-enable-fs-usb-device.patch
+buildroot/board/odyssey/overlay/boot/extlinux/extlinux.conf
+buildroot/board/odyssey/overlay/etc/inittab
+buildroot/board/odyssey/overlay/etc/init.d/S50usb-acm
 ```
 
-The following are historical/backup files and should not become active build inputs:
+Historical/backup files from the former modified upstream Buildroot working tree are not active inputs:
 
 ```text
 genimage.cfg.bak
@@ -302,40 +313,46 @@ linux.config.before-usb-gadget
 patches-linux-5.10-backup/*
 ```
 
-`readme.txt` should be reviewed separately to determine whether it contains upstream board instructions worth preserving as documentation.
+The repository BR2_EXTERNAL tree is authoritative. Do not maintain duplicate project changes inside an upstream Buildroot checkout.
 
 ---
 
-## 11. Baseline Acceptance Checklist
+## 12. Baseline Acceptance Checklist
 
-A new baseline is accepted only when all applicable checks pass:
+The clean BR2_EXTERNAL baseline has passed:
 
 ```text
-[x] Current known-good artifact SHA256 hashes recorded
-[ ] Build completes successfully with make -j8 from BR2_EXTERNAL
-[ ] uname reports expected Linux version
-[ ] final DTB contains FS OTG + USBPHYC + power dependency
-[ ] GPT contains fsbl1/fsbl2/ssbl/rootfs/devboot
-[ ] kernel command line uses PARTLABEL=rootfs
-[ ] rootfs mounts successfully
-[ ] S50usb-acm starts automatically
-[ ] /dev/ttyGS0 exists
-[ ] UDC is 49000000.usb-otg
-[ ] UDC state reaches configured with Windows connected
-[ ] Windows enumerates USB Serial Device (COMxx)
-[ ] Buildroot login shell works over CDC ACM
-[ ] DEVBOOT is Windows-readable
-[ ] New-build SHA256 values compared against this baseline
+[x] Build completes successfully with make -j8 from a clean recursive clone
+[x] pinned Buildroot submodule is used
+[x] uname/runtime reports Linux 6.6.0
+[x] final DTB contains FS OTG + USBPHYC + power/UTMI dependency
+[x] DTB is byte-identical across repeated clean builds
+[x] GPT contains fsbl1/fsbl2/ssbl/rootfs/devboot
+[x] kernel command line uses PARTLABEL=rootfs
+[x] rootfs mounts successfully and remounts read/write
+[x] S50usb-acm starts automatically
+[x] /dev/ttyGS0 exists
+[x] UDC is 49000000.usb-otg
+[x] UDC state reaches configured with Windows connected
+[x] Windows enumerates USB Serial Device (COM25)
+[x] Buildroot login shell works over CDC ACM
+[x] DEVBOOT contains zImage and stm32mp157c-odyssey.dtb
+[x] historical and clean-build SHA256 values compared
+[x] kernel/BusyBox byte differences explained as timestamp metadata
+[x] clean BR2_EXTERNAL build promoted to authoritative baseline
 ```
+
+Byte-for-byte deterministic image generation is a separate follow-up objective.
 
 ---
 
-## 12. Change-control Rule
+## 13. Change-control Rule
 
-When changing any of the following, treat the previous baseline as a comparison reference rather than assuming compatibility:
+When changing any of the following, treat this baseline as a comparison reference rather than assuming compatibility:
 
 ```text
 Buildroot version
+Buildroot submodule revision
 Linux version
 U-Boot version
 TF-A version
@@ -347,4 +364,4 @@ genimage.cfg
 USB gadget descriptor configuration
 ```
 
-For major platform changes, preserve the previous known-good artifact hashes and boot log until the new baseline passes the full acceptance checklist.
+For major platform changes, preserve the previous known-good artifact hashes and boot log until the new baseline passes the applicable functional acceptance checklist.
