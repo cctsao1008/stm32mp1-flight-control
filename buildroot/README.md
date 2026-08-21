@@ -39,8 +39,6 @@ board/odyssey/overlay/etc/init.d/S50usb-acm
 
 ## Build
 
-From the repository root:
-
 ```bash
 ./scripts/build.sh
 ```
@@ -58,8 +56,6 @@ From the repository root:
 ```
 
 ## Validated runtime
-
-The clean repository build has been validated on Odyssey hardware with:
 
 ```text
 Linux 6.6.0
