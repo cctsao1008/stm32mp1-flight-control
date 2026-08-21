@@ -1,131 +1,85 @@
-# Buildroot External Tree
+# STM32MP1 Flight-control BR2_EXTERNAL Tree
 
-This directory is the project-owned Buildroot `BR2_EXTERNAL` tree for the Odyssey STM32MP157C platform.
+This directory owns the project-specific Buildroot configuration for the Seeed Odyssey STM32MP157C platform.
 
-## Ownership Boundary
-
-The repository now deliberately separates upstream Buildroot from project customizations:
+## Authoritative architecture
 
 ```text
-third_party/buildroot/
-    upstream Buildroot 2026.05.1, pinned as a Git submodule
-
-buildroot/
-    project-owned BR2_EXTERNAL source
-
-output/odyssey/
-    generated Buildroot output, ignored by Git
+third_party/buildroot/     pinned upstream Buildroot 2026.05.1 submodule
+buildroot/                 this project-owned BR2_EXTERNAL tree
+scripts/                   build / clean / verify wrappers
+output/odyssey/            generated output
 ```
 
-The Buildroot submodule is pinned to:
+The BR2_EXTERNAL migration has passed clean-clone build and hardware runtime validation. This directory is the source of truth for persistent Odyssey Buildroot customizations.
+
+## Defconfig
 
 ```text
-cb857ba4c87a93e5265a9e4a3f32071abf39e14a
+configs/stm32mp1_flight_odyssey_defconfig
 ```
 
-which is the Buildroot `2026.05.1` release commit.
-
-## Current Status
-
-**The submodule infrastructure is established, but the BR2_EXTERNAL migration is not yet fully authoritative.**
-
-The currently validated working image was produced from a locally modified Buildroot 2026.05.1 tree with board-specific changes under:
+## Board files
 
 ```text
-~/github/buildroot-2026.05.1/board/seeed/stm32mp157c-odyssey/
+board/odyssey/linux.config
+board/odyssey/genimage.cfg
+board/odyssey/patches/linux/9999-odyssey-enable-fs-usb-device.patch
+board/odyssey/overlay/boot/extlinux/extlinux.conf
+board/odyssey/overlay/etc/inittab
+board/odyssey/overlay/etc/init.d/S50usb-acm
 ```
 
-Those exact validated files still need to be imported into this directory and verified through a clean build using only:
+## Build
 
-```text
-third_party/buildroot/
-        +
-buildroot/
-        |
-        v
-output/odyssey/images/sdcard.img
-```
-
-Do not recreate the board files from memory. Import the exact validated files from the working WSL tree.
-
-## Target Layout
-
-```text
-buildroot/
-├── external.desc
-├── external.mk
-├── Config.in
-├── configs/
-│   └── stm32mp1_flight_odyssey_defconfig
-└── board/
-    └── odyssey/
-        ├── linux.config
-        ├── genimage.cfg
-        ├── patches/
-        │   └── linux/
-        │       └── 9999-odyssey-enable-fs-usb-device.patch
-        └── overlay/
-            ├── boot/extlinux/extlinux.conf
-            └── etc/
-                ├── inittab
-                └── init.d/S50usb-acm
-```
-
-## Intended Build Command
-
-After the exact validated board files and project defconfig are imported:
+From the repository root:
 
 ```bash
 ./scripts/build.sh
 ```
 
-Equivalent manual flow:
-
-```bash
-ROOT="$PWD"
-
-make -C "$ROOT/third_party/buildroot" \
-    O="$ROOT/output/odyssey" \
-    BR2_EXTERNAL="$ROOT/buildroot" \
-    stm32mp1_flight_odyssey_defconfig
-
-make -C "$ROOT/third_party/buildroot" \
-    O="$ROOT/output/odyssey" \
-    BR2_EXTERNAL="$ROOT/buildroot" \
-    -j8
-```
-
-Verify generated artifacts with:
+## Verify
 
 ```bash
 ./scripts/verify-image.sh
 ```
 
-## Migration Rule
+## Clean
 
-The migration is complete only when:
-
-1. the exact validated board files are imported from the current WSL Buildroot tree,
-2. `stm32mp1_flight_odyssey_defconfig` is created from the validated configuration,
-3. a clean Buildroot 2026.05.1 submodule build succeeds using this external tree,
-4. the generated DTB, GPT layout, rootfs overlay, and boot artifacts are verified,
-5. the board boots successfully,
-6. USB CDC ACM reaches `configured`,
-7. Windows obtains a COM port,
-8. Buildroot login works over `/dev/ttyGS0`, and
-9. the known-good artifact hashes are recorded.
-
-After that point the policy becomes:
-
-```text
-third_party/buildroot/ = pinned upstream dependency
-buildroot/             = authoritative project customization
-output/                = disposable generated output
+```bash
+./scripts/clean.sh
 ```
 
-## References
+## Validated runtime
 
-- `docs/odyssey-buildroot-submodule-workflow.md`
-- `docs/odyssey-buildroot-external-migration.md`
-- `docs/odyssey-fresh-clone-reproduction.md`
-- `docs/odyssey-known-good-baseline.md`
+The clean repository build has been validated on Odyssey hardware with:
+
+```text
+Linux 6.6.0
+root=PARTLABEL=rootfs rootwait
+USBPHYC initialized
+DWC2 peripheral UDC
+ConfigFS CDC ACM
+/dev/ttyGS0
+UDC state configured
+Windows USB Serial Device (COM25)
+Buildroot login shell over USB-C
+```
+
+## Ownership rule
+
+Do not maintain duplicate project changes inside `third_party/buildroot/` or another upstream Buildroot checkout.
+
+The old modified `~/github/buildroot-2026.05.1` tree may be retained only as historical/debug evidence.
+
+Historical files such as the following are not active project inputs:
+
+```text
+genimage.cfg.bak
+linux.config.before-usb-gadget
+patches-linux-5.10-backup/*
+```
+
+## Deterministic-build note
+
+Functional reproducibility is validated. Full byte-for-byte image reproducibility is separate follow-up work because current generated artifacts include kernel/BusyBox build timestamps and filesystem/GPT generated metadata.
