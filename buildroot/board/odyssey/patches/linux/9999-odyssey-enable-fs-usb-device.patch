@@ -1,0 +1,32 @@
+--- a/arch/arm/boot/dts/st/stm32mp157c-odyssey.dts
++++ b/arch/arm/boot/dts/st/stm32mp157c-odyssey.dts
+@@ -86,3 +86,29 @@
+ 	status = "okay";
+ };
+ 
++
++/*
++ * ODYSSEY USB-C device port
++ *
++ * The carrier USB-C D+/D- signals are connected to the STM32MP15
++ * integrated full-speed OTG transceiver on PA11/PA12.
++ */
++&pwr_regulators {
++	vdd-supply = <&vdd>;
++	vdd_3v3_usbfs-supply = <&vdd_usb>;
++};
++
++&usbphyc {
++	status = "okay";
++};
++
++&usbotg_hs {
++	compatible = "st,stm32mp15-fsotg", "snps,dwc2";
++
++	pinctrl-names = "default";
++	pinctrl-0 = <&usbotg_hs_pins_a &usbotg_fs_dp_dm_pins_a>;
++
++	dr_mode = "peripheral";
++
++	status = "okay";
++};

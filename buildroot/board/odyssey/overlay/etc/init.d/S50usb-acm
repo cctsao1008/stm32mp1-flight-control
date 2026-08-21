@@ -1,0 +1,99 @@
+#!/bin/sh
+
+G=/sys/kernel/config/usb_gadget/g1
+
+start()
+{
+    echo "Starting USB CDC ACM gadget..."
+
+    mkdir -p /sys/kernel/config
+
+    grep -qs " /sys/kernel/config configfs " /proc/mounts || \
+        mount -t configfs none /sys/kernel/config
+
+    # Wait for STM32MP1 USB Device Controller
+    COUNT=0
+    while [ -z "$(ls /sys/class/udc 2>/dev/null | head -n 1)" ]; do
+        COUNT=$((COUNT + 1))
+
+        if [ "$COUNT" -ge 20 ]; then
+            echo "ERROR: USB UDC not found"
+            return 1
+        fi
+
+        sleep 1
+    done
+
+    UDC="$(ls /sys/class/udc | head -n 1)"
+    echo "USB UDC: $UDC"
+
+    mkdir -p "$G"
+
+    # Development/test VID/PID only.
+    echo 0x0525 > "$G/idVendor"
+    echo 0xa4a7 > "$G/idProduct"
+
+    echo 0x0100 > "$G/bcdDevice"
+    echo 0x0200 > "$G/bcdUSB"
+
+    mkdir -p "$G/strings/0x409"
+
+    echo "STM32MP157C0001" \
+        > "$G/strings/0x409/serialnumber"
+
+    echo "ODYSSEY Buildroot" \
+        > "$G/strings/0x409/manufacturer"
+
+    echo "STM32MP157C CDC ACM" \
+        > "$G/strings/0x409/product"
+
+    mkdir -p "$G/configs/c.1/strings/0x409"
+
+    echo "CDC ACM" \
+        > "$G/configs/c.1/strings/0x409/configuration"
+
+    echo 120 > "$G/configs/c.1/MaxPower"
+
+    mkdir -p "$G/functions/acm.usb0"
+
+    ln -s "$G/functions/acm.usb0" \
+          "$G/configs/c.1/acm.usb0"
+
+    echo "$UDC" > "$G/UDC"
+
+    echo "USB CDC ACM gadget started"
+}
+
+stop()
+{
+    echo "Stopping USB CDC ACM gadget..."
+
+    [ -d "$G" ] || return 0
+
+    echo "" > "$G/UDC" 2>/dev/null
+
+    rm -f "$G/configs/c.1/acm.usb0"
+
+    rmdir "$G/functions/acm.usb0" 2>/dev/null
+    rmdir "$G/configs/c.1/strings/0x409" 2>/dev/null
+    rmdir "$G/configs/c.1" 2>/dev/null
+    rmdir "$G/strings/0x409" 2>/dev/null
+    rmdir "$G" 2>/dev/null
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    restart)
+        stop
+        start
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart}"
+        exit 1
+        ;;
+esac
