@@ -2,7 +2,7 @@
 
 ## Odyssey STM32MP157C Buildroot Platform
 
-The repository-owned Buildroot platform uses a pinned Buildroot 2026.05.1 submodule plus a validated `BR2_EXTERNAL` tree.
+The repository-owned Buildroot platform uses a pinned Buildroot 2026.05.1 submodule plus a validated `BR2_EXTERNAL` tree. The migration from the former modified upstream working tree is complete and hardware-validated.
 
 Primary documents:
 
