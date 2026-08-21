@@ -324,7 +324,7 @@ The clean BR2_EXTERNAL baseline has passed:
 ```text
 [x] Build completes successfully with make -j8 from a clean recursive clone
 [x] pinned Buildroot submodule is used
-[x] uname/runtime reports Linux 6.6.0
+[x] runtime reports Linux 6.6.0
 [x] final DTB contains FS OTG + USBPHYC + power/UTMI dependency
 [x] DTB is byte-identical across repeated clean builds
 [x] GPT contains fsbl1/fsbl2/ssbl/rootfs/devboot
