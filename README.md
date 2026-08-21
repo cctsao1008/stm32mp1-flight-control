@@ -81,6 +81,7 @@ U-Boot:         2021.10
 TF-A:           v2.5
 USB gadget:     CDC ACM over STM32MP15 FS OTG
 Rootfs select:  PARTLABEL=rootfs
+Windows host:   USB Serial Device (COM25)
 ```
 
 Byte-for-byte deterministic image generation is tracked separately from the validated functional platform baseline.
