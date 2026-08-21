@@ -243,39 +243,76 @@ The generated small GPT image may also report a backup-GPT placement warning aft
 
 ## 9. Artifact Hash Record
 
-A known-good baseline should record hashes for the final deployable artifacts.
-
-From the Buildroot directory:
-
-```bash
-cd ~/github/buildroot-2026.05.1
-
-sha256sum \
-  output/images/sdcard.img \
-  output/images/zImage \
-  output/images/stm32mp157c-odyssey.dtb \
-  output/images/rootfs.ext4
-```
-
-Record them here when the current source tree is frozen:
+The current frozen known-good Buildroot tree produced the following SHA256 values:
 
 ```text
-sdcard.img:                    <TO_BE_RECORDED>
-zImage:                        <TO_BE_RECORDED>
-stm32mp157c-odyssey.dtb:      <TO_BE_RECORDED>
-rootfs.ext4:                   <TO_BE_RECORDED>
+sdcard.img:                    863bfe155e523340a891fad8693b39562997352760c2f66c14b860da253b3992
+zImage:                        3b09a7ffbc6df19ff7dbca35a916a77d86bf89739f0a59601b775289bbdbfa92
+stm32mp157c-odyssey.dtb:       878fb69ca251bb38e9118521b3f2464276a6af408cf52688065b0251c7af2d50
+rootfs.ext4:                   8eb0f4e0ebc02dc85b4b9c026135b94e379399dcaf40e4d54bf52631b35aa9b5
 ```
 
-Do not invent or copy hashes from an older build. They must come from the exact frozen build being declared known-good.
+These hashes were captured from:
+
+```text
+~/github/buildroot-2026.05.1/output/images/
+```
+
+They are the comparison reference for the upcoming `BR2_EXTERNAL` fresh-build migration.
+
+Do not replace these hashes unless a new baseline has passed the full acceptance checklist.
 
 ---
 
-## 10. Baseline Acceptance Checklist
+## 10. Frozen Board-source Inventory
+
+The current working Buildroot tree contains the following board-specific files:
+
+```text
+board/seeed/stm32mp157c-odyssey/genimage.cfg
+board/seeed/stm32mp157c-odyssey/genimage.cfg.bak
+board/seeed/stm32mp157c-odyssey/linux.config
+board/seeed/stm32mp157c-odyssey/linux.config.before-usb-gadget
+board/seeed/stm32mp157c-odyssey/overlay/boot/extlinux/extlinux.conf
+board/seeed/stm32mp157c-odyssey/overlay/etc/init.d/S50usb-acm
+board/seeed/stm32mp157c-odyssey/overlay/etc/inittab
+board/seeed/stm32mp157c-odyssey/patches-linux-5.10-backup/0001-ARM-dts-stm32-fix-stm32mp157c-odyssey-card-detect.patch
+board/seeed/stm32mp157c-odyssey/patches-linux-5.10-backup/9998-dwc2-stm32mp15-fs-phy-before-reset.patch
+board/seeed/stm32mp157c-odyssey/patches-linux-5.10-backup/9999-odyssey-enable-fs-usb-device.patch
+board/seeed/stm32mp157c-odyssey/patches/linux/9999-odyssey-enable-fs-usb-device.patch
+board/seeed/stm32mp157c-odyssey/readme.txt
+```
+
+For the project-owned `BR2_EXTERNAL` tree, only the active source-of-truth files should be imported initially:
+
+```text
+genimage.cfg
+linux.config
+overlay/boot/extlinux/extlinux.conf
+overlay/etc/init.d/S50usb-acm
+overlay/etc/inittab
+patches/linux/9999-odyssey-enable-fs-usb-device.patch
+```
+
+The following are historical/backup files and should not become active build inputs:
+
+```text
+genimage.cfg.bak
+linux.config.before-usb-gadget
+patches-linux-5.10-backup/*
+```
+
+`readme.txt` should be reviewed separately to determine whether it contains upstream board instructions worth preserving as documentation.
+
+---
+
+## 11. Baseline Acceptance Checklist
 
 A new baseline is accepted only when all applicable checks pass:
 
 ```text
-[ ] Build completes successfully with make -j8
+[x] Current known-good artifact SHA256 hashes recorded
+[ ] Build completes successfully with make -j8 from BR2_EXTERNAL
 [ ] uname reports expected Linux version
 [ ] final DTB contains FS OTG + USBPHYC + power dependency
 [ ] GPT contains fsbl1/fsbl2/ssbl/rootfs/devboot
@@ -288,12 +325,12 @@ A new baseline is accepted only when all applicable checks pass:
 [ ] Windows enumerates USB Serial Device (COMxx)
 [ ] Buildroot login shell works over CDC ACM
 [ ] DEVBOOT is Windows-readable
-[ ] final SHA256 hashes are recorded
+[ ] New-build SHA256 values compared against this baseline
 ```
 
 ---
 
-## 11. Change-control Rule
+## 12. Change-control Rule
 
 When changing any of the following, treat the previous baseline as a comparison reference rather than assuming compatibility:
 
