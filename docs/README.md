@@ -15,8 +15,7 @@ Covers:
 - Buildroot 2026.05.1 baseline
 - Linux 6.6 build flow
 - WSL environment
-- `output/build`, `output/target`, `output/host`, and `output/images`
-- when to use `linux-dirclean`, `linux-patch`, and `linux-configure`
+- Buildroot output directories
 - rebuild decision flow
 - DTB, rootfs, and image verification
 
@@ -36,6 +35,32 @@ Buildroot source file
 ```
 
 for the current validated Odyssey customizations.
+
+### [ODYSSEY STM32MP157C Buildroot Submodule Workflow](odyssey-buildroot-submodule-workflow.md)
+
+Use this for the repository-level dependency model.
+
+Current structure:
+
+```text
+third_party/buildroot/
+    pinned upstream Buildroot 2026.05.1 submodule
+
+buildroot/
+    project-owned BR2_EXTERNAL tree
+
+output/odyssey/
+    generated build output
+
+scripts/
+    build / clean / verification wrappers
+```
+
+The pinned Buildroot release commit is:
+
+```text
+cb857ba4c87a93e5265a9e4a3f32071abf39e14a
+```
 
 ## Platform Bring-up
 
@@ -140,16 +165,36 @@ Use this document before turning the historical reference into actual STM32MP157
 
 ## Reproducibility and Maintenance
 
-The following documents are intended to make the platform reproducible from a clean environment:
+The platform dependency model is now:
 
+```text
+main repository commit
+        +
+pinned Buildroot submodule
+        +
+project BR2_EXTERNAL tree
+        +
+build / verification scripts
+        |
+        v
+validated sdcard.img
+```
+
+Relevant documents:
+
+- [Buildroot Submodule Workflow](odyssey-buildroot-submodule-workflow.md)
+  - pinned upstream dependency
+  - clone/update workflow
+  - out-of-tree output
+  - controlled Buildroot upgrades
 - [Known-good Baseline](odyssey-known-good-baseline.md)
   - validated versions, boot expectations, and artifact hashes
 - [Fresh-clone Reproduction](odyssey-fresh-clone-reproduction.md)
-  - clean-machine / clean-Buildroot reproduction procedure
+  - clean-machine reproduction procedure
 - [BR2_EXTERNAL Migration](odyssey-buildroot-external-migration.md)
-  - migration from direct Buildroot-tree modifications to a project-owned `BR2_EXTERNAL`
+  - migration from the currently validated local Buildroot board files to a project-owned external tree
 
-These documents are part of the platform-maintenance strategy and should be kept synchronized with the actual source tree.
+The Buildroot submodule itself is already established. The remaining reproducibility gate is to import the exact validated Odyssey files from the current WSL Buildroot tree, create the project defconfig, and prove a clean submodule + `BR2_EXTERNAL` build on hardware.
 
 ## Documentation Policy
 
@@ -168,6 +213,9 @@ Build flow
 Modification map
     = where each persistent project change lives
 
+Submodule workflow
+    = how the exact upstream Buildroot dependency is pinned and maintained
+
 Known-good baseline
     = what exact combination has been validated
 
@@ -184,19 +232,21 @@ Reference mapping
     = how those functions could map into A7/M4 ownership and future hardware
 ```
 
-A generated build directory must never be treated as authoritative documentation or persistent source.
+Generated build directories must never be treated as authoritative documentation or persistent source.
 
 Historical reference documents must also avoid converting old component choices into new requirements. RasPilot is primarily useful for architectural intent, deterministic I/O partitioning, safety boundaries, and hardware-interface patterns.
 
-The long-term target is:
+The long-term target is now concretely represented by the repository structure:
 
 ```text
-clean upstream Buildroot
+third_party/buildroot/     pinned upstream dependency
         +
-stm32mp1-flight-control repository
+buildroot/                 project-owned customization
+        +
+scripts/                   controlled build / verification
         |
         v
-reproducible sdcard.img
+output/odyssey/images/sdcard.img
         |
         v
 validated Odyssey platform
