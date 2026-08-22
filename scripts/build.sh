@@ -23,6 +23,17 @@ if [[ ! -f "${EXTERNAL_DIR}/configs/${DEFCONFIG}" ]]; then
     exit 1
 fi
 
+if [[ -z "${SOURCE_DATE_EPOCH:-}" ]]; then
+    SOURCE_DATE_EPOCH="$(git -C "${ROOT_DIR}" log -1 --format=%ct HEAD 2>/dev/null || true)"
+fi
+
+if [[ -n "${SOURCE_DATE_EPOCH:-}" ]]; then
+    export SOURCE_DATE_EPOCH
+    echo "SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH}"
+else
+    echo "WARNING: SOURCE_DATE_EPOCH could not be derived; Buildroot will use its reproducible-build fallback."
+fi
+
 mkdir -p "${OUTPUT_DIR}"
 
 if [[ ! -f "${OUTPUT_DIR}/.config" ]]; then
