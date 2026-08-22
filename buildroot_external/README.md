@@ -1,34 +1,35 @@
 # STM32MP1 Flight-control BR2_EXTERNAL Tree
 
-This directory owns the project-specific Buildroot configuration for the Seeed Odyssey STM32MP157C platform.
+This directory is the project-owned Buildroot external tree for the Odyssey STM32MP157C platform.
 
-## Authoritative architecture
+It contains persistent platform configuration that must remain separate from the pinned upstream Buildroot source under:
 
 ```text
-third_party/buildroot/     pinned upstream Buildroot 2026.05.1 submodule
-buildroot_external/        this project-owned BR2_EXTERNAL tree
-scripts/                   build / clean / verify wrappers
-output/odyssey/            generated output
+third_party/buildroot/
 ```
 
-Validated migration source revision:
+## Ownership
 
 ```text
-repository: e20e422730c2e6015a824faf0061ebe91fe9da38
-Buildroot:  cb857ba4c87a93e5265a9e4a3f32071abf39e14a
+buildroot_external/
+    project-owned BR2_EXTERNAL tree
+
+third_party/buildroot/
+    upstream Buildroot 2026.05.1 Git submodule
+
+output/odyssey/
+    generated build output
 ```
 
-The BR2_EXTERNAL migration has passed clean-clone build and hardware runtime validation. This directory is the source of truth for persistent Odyssey Buildroot customizations.
+Do not duplicate project changes inside the upstream Buildroot submodule.
 
-## Defconfig
+## Contents
 
 ```text
+Config.in
+external.desc
+external.mk
 configs/stm32mp1_flight_odyssey_defconfig
-```
-
-## Board files
-
-```text
 board/odyssey/linux.config
 board/odyssey/genimage.cfg
 board/odyssey/patches/linux/9999-odyssey-enable-fs-usb-device.patch
@@ -37,34 +38,38 @@ board/odyssey/overlay/etc/inittab
 board/odyssey/overlay/etc/init.d/S50usb-acm
 ```
 
-## Build / Verify / Clean
-
-```bash
-./scripts/build.sh
-./scripts/verify-image.sh
-./scripts/clean.sh
-```
-
-## Validated runtime
+The generated Buildroot variable remains:
 
 ```text
-Linux 6.6.0
-root=PARTLABEL=rootfs rootwait
-USBPHYC initialized
-DWC2 peripheral UDC
-ConfigFS CDC ACM
-/dev/ttyGS0
-UDC state configured
-Windows USB Serial Device (COM25)
-Buildroot login shell over USB-C
+BR2_EXTERNAL_STM32MP1_FLIGHT_PATH
 ```
 
-## Ownership rule
+because it is derived from the `name:` field in `external.desc`, not from this directory's filesystem name.
 
-Do not maintain duplicate project changes inside `third_party/buildroot/` or another upstream Buildroot checkout.
+## Reproducible-build mode
 
-The old modified `~/github/buildroot-2026.05.1` tree may be retained only as historical/debug evidence.
+The project defconfig enables:
 
-## Deterministic-build note
+```text
+BR2_REPRODUCIBLE=y
+```
 
-Functional reproducibility is validated. Full byte-for-byte image reproducibility is separate follow-up work because current generated artifacts include kernel/BusyBox build timestamps and filesystem/GPT generated metadata.
+`scripts/build.sh` derives `SOURCE_DATE_EPOCH` from the current project Git commit unless the caller already defines it.
+
+The detailed deterministic-build policy and qualification procedure are documented in:
+
+```text
+docs/odyssey-reproducible-build.md
+```
+
+## Standard workflow
+
+```bash
+git clone --recursive https://github.com/cctsao1008/stm32mp1-flight-control.git
+cd stm32mp1-flight-control
+
+./scripts/build.sh
+./scripts/verify-image.sh
+```
+
+Generated state belongs under `output/` and is not a source of truth.
