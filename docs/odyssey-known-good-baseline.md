@@ -271,6 +271,26 @@ GPT disk GUID
 
 Therefore functional acceptance and deterministic byte reproducibility are tracked separately.
 
+### Directory-rename regression validation
+
+After renaming the project external tree from `buildroot/` to `buildroot_external/`, a full clean rebuild and static verification were completed successfully.
+
+Observed regression evidence:
+
+```text
+BR2_EXTERNAL resolves to buildroot_external/
+overlay is checked and copied from buildroot_external/board/odyssey/overlay/
+Linux 6.6 build completes
+rootfs image generation completes
+genimage completes
+GPT layout remains fsbl1/fsbl2/ssbl/rootfs/devboot
+DEVBOOT still contains zImage and stm32mp157c-odyssey.dtb
+final DTB SHA256 remains 878fb69ca251bb38e9118521b3f2464276a6af408cf52688065b0251c7af2d50
+scripts/verify-image.sh completes successfully
+```
+
+No Buildroot functional input was changed by the directory rename. New `zImage`, rootfs, FAT, GPT, and full-image hashes are expected to differ until deterministic-build controls are implemented.
+
 ---
 
 ## 10. Historical Known-good Artifact Record
@@ -340,6 +360,7 @@ The clean BR2_EXTERNAL baseline has passed:
 [x] historical and clean-build SHA256 values compared
 [x] kernel/BusyBox byte differences explained as timestamp metadata
 [x] clean BR2_EXTERNAL build promoted to authoritative baseline
+[x] buildroot_external directory rename passed clean-build/static regression verification
 ```
 
 Byte-for-byte deterministic image generation is a separate follow-up objective.
