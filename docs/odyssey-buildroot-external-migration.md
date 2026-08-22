@@ -72,6 +72,26 @@ The final DTB is byte-for-byte identical across the historical validated build a
 878fb69ca251bb38e9118521b3f2464276a6af408cf52688065b0251c7af2d50
 ```
 
+## Directory-rename regression validation
+
+After the project-owned external tree was renamed from `buildroot/` to `buildroot_external/`, a new clean build and `scripts/verify-image.sh` run completed successfully.
+
+The regression check confirmed:
+
+```text
+BR2_EXTERNAL resolves to buildroot_external/
+project overlay is read from buildroot_external/board/odyssey/overlay/
+Linux 6.6 build completes
+rootfs generation completes
+genimage completes
+GPT layout remains unchanged
+DEVBOOT contents remain unchanged
+final DTB SHA256 remains 878fb69ca251bb38e9118521b3f2464276a6af408cf52688065b0251c7af2d50
+verification script completes successfully
+```
+
+This rename was a path/ownership cleanup only. It did not change the project Buildroot configuration, Device Tree content, partition architecture, or runtime design.
+
 ## Hardware-validated clean-build hashes
 
 ```text
