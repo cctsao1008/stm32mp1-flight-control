@@ -43,7 +43,7 @@ Therefore `DEVBOOT` is not authoritative for the running image.
 The partition is generated from:
 
 ```text
-buildroot/board/odyssey/genimage.cfg
+buildroot_external/board/odyssey/genimage.cfg
 ```
 
 through the project BR2_EXTERNAL build.
