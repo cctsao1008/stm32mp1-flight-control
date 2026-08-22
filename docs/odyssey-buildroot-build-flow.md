@@ -22,6 +22,19 @@ stm32mp1-flight-control/
                |
                v
         output/odyssey/
+               |
+               +-- build/
+               +-- host/
+               +-- target/
+               +-- images/
+                      |
+                      +-- tf-a-stm32mp157c-odyssey.stm32
+                      +-- u-boot.stm32
+                      +-- zImage
+                      +-- stm32mp157c-odyssey.dtb
+                      +-- rootfs.ext4
+                      +-- devboot.vfat
+                      +-- sdcard.img
 ```
 
 ## Configuration flow
@@ -47,7 +60,7 @@ Project paths are expressed through:
 $(BR2_EXTERNAL_STM32MP1_FLIGHT_PATH)
 ```
 
-so persistent project files are not stored inside upstream Buildroot.
+so persistent project files are not stored inside upstream Buildroot. The generated variable name comes from `external.desc` and is unaffected by the repository directory name `buildroot_external/`.
 
 ## Linux flow
 
@@ -194,4 +207,4 @@ Functional reproduction from source is validated.
 
 Full byte-for-byte image determinism is separate work because the current build embeds or generates timestamps, filesystem UUIDs, FAT metadata, and GPT GUIDs.
 
-The repository-owned `buildroot_external/` tree is authoritative; do not maintain duplicate project changes inside an upstream Buildroot working tree.
+The repository-owned BR2_EXTERNAL tree is authoritative; do not maintain duplicate project changes inside an upstream Buildroot working tree.
