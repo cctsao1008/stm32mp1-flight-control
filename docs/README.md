@@ -12,6 +12,7 @@ Primary documents:
 - `odyssey-buildroot-modification-map.md` — mapping from project-owned files to generated artifacts and verification
 - `odyssey-buildroot-external-migration.md` — completed migration from modified upstream working tree to BR2_EXTERNAL
 - `odyssey-fresh-clone-reproduction.md` — clean-clone reproduction and hardware validation result
+- `odyssey-reproducible-build.md` — deterministic-build policy, SOURCE_DATE_EPOCH rule, and two-build qualification procedure
 - `odyssey-usb-cdc-acm-bringup.md` — USB CDC ACM bring-up history and runtime path
 - `odyssey-usb-cdc-acm-buildroot-implementation.md` — persistent Buildroot USB gadget implementation
 - `odyssey-devboot-fat-partition.md` — DEVBOOT FAT partition design and use
@@ -33,7 +34,7 @@ clean recursive clone
     -> Buildroot login shell
 ```
 
-Byte-for-byte deterministic image generation is separate follow-up work.
+Byte-for-byte deterministic image generation is tracked separately from the functional platform baseline.
 
 ## RasPilot / Flight-control Reference
 
