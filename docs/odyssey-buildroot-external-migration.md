@@ -19,6 +19,8 @@ scripts/                   build / clean / verify wrappers
 output/odyssey/images/sdcard.img
 ```
 
+The external-tree directory was renamed from `buildroot/` to `buildroot_external/` after validation so its role is explicit and cannot be confused with the upstream Buildroot submodule.
+
 ## Authoritative inputs
 
 ```text
@@ -36,6 +38,12 @@ Buildroot is pinned at:
 ```text
 2026.05.1
 cb857ba4c87a93e5265a9e4a3f32071abf39e14a
+```
+
+The migration build was validated from repository revision:
+
+```text
+e20e422730c2e6015a824faf0061ebe91fe9da38
 ```
 
 ## Validation result
@@ -58,7 +66,7 @@ Windows enumerates USB Serial Device (COM25)
 Buildroot shell is usable over CDC ACM
 ```
 
-The final DTB SHA256 remains:
+The final DTB is byte-for-byte identical across the historical validated build and repeated clean BR2_EXTERNAL builds:
 
 ```text
 878fb69ca251bb38e9118521b3f2464276a6af408cf52688065b0251c7af2d50
@@ -73,25 +81,65 @@ stm32mp157c-odyssey.dtb:       878fb69ca251bb38e9118521b3f2464276a6af408cf526880
 rootfs.ext4:                   c56a6e8fc011ce3e19e16019ba892f9b3eadc31c7dc9d6986263c32f5b0faa8e
 ```
 
-These identify the validated build but are not all expected to repeat byte-for-byte until deterministic-build controls are enabled.
+These hashes identify the validated build but are not all expected to repeat byte-for-byte until deterministic-build controls are enabled.
 
 ## Historical working tree
 
-The former `~/github/buildroot-2026.05.1` tree is no longer the project source of truth. It may be retained as historical/debug evidence only.
+The former `~/github/buildroot-2026.05.1` tree is no longer the project source of truth.
 
-The historical rootfs was found to contain stale Linux 5.10.1 module metadata alongside Linux 6.6.0 metadata, reinforcing the use of clean repository builds as the authoritative baseline.
+It may be kept temporarily as historical/debug evidence, but project changes must not be maintained there in parallel.
+
+Historical/backup files such as the following are intentionally not active build inputs:
+
+```text
+genimage.cfg.bak
+linux.config.before-usb-gadget
+patches-linux-5.10-backup/*
+```
+
+The historical rootfs was also found to contain stale Linux 5.10.1 module metadata alongside Linux 6.6.0 metadata, reinforcing the use of clean repository builds as the authoritative baseline.
 
 ## Artifact reproducibility note
 
-Functional reproducibility is validated. Byte-for-byte image reproducibility is tracked separately because current generated output contains kernel/BusyBox build timestamps, ext4 metadata, FAT metadata, and GPT GUIDs.
+Functional reproducibility is validated.
+
+Byte-for-byte image reproducibility is not yet enabled. Repeated clean builds show expected generated differences from:
+
+```text
+kernel UTS_VERSION timestamp
+BusyBox embedded build timestamp
+ext4 UUID / creation metadata
+FAT volume serial / timestamps
+GPT disk GUID
+```
+
+This is separate deterministic-build work and is not a BR2_EXTERNAL migration failure.
 
 ## Standard workflow
+
+Clone:
 
 ```bash
 git clone --recursive https://github.com/cctsao1008/stm32mp1-flight-control.git
 cd stm32mp1-flight-control
+```
+
+Build:
+
+```bash
 ./scripts/build.sh
+```
+
+Verify:
+
+```bash
 ./scripts/verify-image.sh
+```
+
+Clean generated output:
+
+```bash
+./scripts/clean.sh
 ```
 
 ## Source-of-truth rule
