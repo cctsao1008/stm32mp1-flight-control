@@ -8,99 +8,34 @@ The current source-of-truth architecture is:
 
 ```text
 third_party/buildroot/     pinned upstream Buildroot 2026.05.1 submodule
-buildroot/                 project-owned BR2_EXTERNAL tree
+buildroot_external/        project-owned BR2_EXTERNAL tree
 scripts/                   build / clean / verify wrappers
 output/odyssey/            generated output
 ```
 
-The former locally modified upstream Buildroot working tree is no longer authoritative.
-
 ## Project defconfig
 
-Path:
-
 ```text
-buildroot/configs/stm32mp1_flight_odyssey_defconfig
+buildroot_external/configs/stm32mp1_flight_odyssey_defconfig
 ```
 
-Purpose:
-
-- selects STM32MP157C Cortex-A7 target
-- selects Linux 6.6
-- selects U-Boot 2021.10
-- selects TF-A v2.5
-- selects the Odyssey DTB
-- points kernel config, patch, overlay, and genimage paths into the BR2_EXTERNAL tree
-
-Verification:
-
-```bash
-./scripts/build.sh
-```
-
-Compare generated Buildroot `.config` only after accounting for expected `BR2_EXTERNAL_*` and path metadata.
+Selects STM32MP157C, Linux 6.6, U-Boot 2021.10, TF-A v2.5, the Odyssey DTB, and the project-owned kernel/patch/overlay/genimage paths.
 
 ## Linux kernel config
 
-Path:
-
 ```text
-buildroot/board/odyssey/linux.config
+buildroot_external/board/odyssey/linux.config
 ```
 
-Purpose:
-
-```text
-CONFIG_USB_GADGET=y
-CONFIG_USB_DWC2_PERIPHERAL=y
-CONFIG_USB_CONFIGFS=y
-CONFIG_USB_CONFIGFS_ACM=y
-CONFIG_PHY_STM32_USBPHYC=y
-```
-
-Generated artifact:
-
-```text
-output/odyssey/build/linux-6.6/.config
-output/odyssey/images/zImage
-```
-
-Verification:
-
-```bash
-grep -E 'CONFIG_USB_DWC2_PERIPHERAL=|CONFIG_USB_GADGET=|CONFIG_USB_CONFIGFS=|CONFIG_USB_CONFIGFS_ACM=|CONFIG_PHY_STM32_USBPHYC=' \
-  output/odyssey/build/linux-6.6/.config
-```
-
-The clean BR2_EXTERNAL build produced a kernel `.config` identical to the validated working configuration.
+Key persistent options include USB gadget, DWC2 peripheral, ConfigFS ACM, and STM32 USBPHYC support.
 
 ## Linux Device Tree patch
 
-Path:
-
 ```text
-buildroot/board/odyssey/patches/linux/9999-odyssey-enable-fs-usb-device.patch
+buildroot_external/board/odyssey/patches/linux/9999-odyssey-enable-fs-usb-device.patch
 ```
 
-Purpose:
-
-- enable STM32 USBPHYC
-- configure the integrated STM32MP15 FS OTG path
-- use PA11/PA12 FS D+/D- pinctrl
-- force peripheral mode
-- provide the USB FS power dependency
-
-Generated artifact:
-
-```text
-output/odyssey/images/stm32mp157c-odyssey.dtb
-```
-
-Verification:
-
-```bash
-./scripts/verify-image.sh
-```
+Enables USBPHYC and the STM32MP15 integrated FS OTG peripheral path using PA11/PA12.
 
 Validated final DTB SHA256:
 
@@ -108,106 +43,29 @@ Validated final DTB SHA256:
 878fb69ca251bb38e9118521b3f2464276a6af408cf52688065b0251c7af2d50
 ```
 
-The DTB is byte-identical across the historical validated build and repeated clean BR2_EXTERNAL builds.
-
 ## Rootfs overlay
 
-Root path:
-
 ```text
-buildroot/board/odyssey/overlay/
+buildroot_external/board/odyssey/overlay/
 ```
 
-### extlinux.conf
+Important files:
 
 ```text
-buildroot/board/odyssey/overlay/boot/extlinux/extlinux.conf
+buildroot_external/board/odyssey/overlay/boot/extlinux/extlinux.conf
+buildroot_external/board/odyssey/overlay/etc/inittab
+buildroot_external/board/odyssey/overlay/etc/init.d/S50usb-acm
 ```
 
-Purpose:
-
-```text
-root=PARTLABEL=rootfs rootwait
-```
-
-Runtime verification:
-
-```text
-cat /proc/cmdline
-root=PARTLABEL=rootfs rootwait
-```
-
-### inittab
-
-```text
-buildroot/board/odyssey/overlay/etc/inittab
-```
-
-Purpose:
-
-- preserve the validated Buildroot console configuration
-- start a getty on `/dev/ttyGS0`
-
-### S50usb-acm
-
-```text
-buildroot/board/odyssey/overlay/etc/init.d/S50usb-acm
-```
-
-Mode:
-
-```text
-100755
-```
-
-Purpose:
-
-- mount ConfigFS as needed
-- create gadget `g1`
-- create `acm.usb0`
-- bind the gadget to `49000000.usb-otg`
-
-Runtime verification:
-
-```text
-/dev/ttyGS0 exists
-/sys/class/udc/49000000.usb-otg/state = configured
-/sys/kernel/config/usb_gadget/g1/UDC = 49000000.usb-otg
-Windows = USB Serial Device (COM25)
-```
+`S50usb-acm` remains executable (`100755`) and creates ConfigFS gadget `g1`, ACM function `acm.usb0`, and binds it to `49000000.usb-otg`.
 
 ## genimage layout
 
-Path:
-
 ```text
-buildroot/board/odyssey/genimage.cfg
+buildroot_external/board/odyssey/genimage.cfg
 ```
 
-Purpose:
-
-Generate the validated SD-card GPT image with:
-
-```text
-fsbl1
-fsbl2
-ssbl
-rootfs
-devboot
-```
-
-`devboot` is a 64 MiB FAT convenience/debug partition containing:
-
-```text
-zImage
-stm32mp157c-odyssey.dtb
-```
-
-Verification:
-
-```bash
-./scripts/verify-image.sh
-```
+Generates the validated GPT image with `fsbl1`, `fsbl2`, `ssbl`, `rootfs`, and `devboot`.
 
 ## Build wrapper
 
@@ -215,55 +73,27 @@ Verification:
 scripts/build.sh
 ```
 
-Purpose:
-
-- use `third_party/buildroot/`
-- set `BR2_EXTERNAL=buildroot/`
-- use `output/odyssey/`
-- configure `stm32mp1_flight_odyssey_defconfig` on a fresh output tree
-- build with `JOBS=8` by default
-
-## Clean wrapper
+Uses:
 
 ```text
-scripts/clean.sh
+BUILDROOT_DIR=<repo>/third_party/buildroot
+EXTERNAL_DIR=<repo>/buildroot_external
+OUTPUT_DIR=<repo>/output/odyssey
 ```
 
-Purpose:
+## Verification
 
-Remove generated Odyssey output without modifying source-controlled inputs.
-
-## Verification wrapper
-
-```text
-scripts/verify-image.sh
+```bash
+./scripts/build.sh
+./scripts/verify-image.sh
 ```
 
-Purpose:
-
-- print artifact SHA256 values
-- verify GPT partition layout
-- verify DEVBOOT contents
-- inspect final DTB USB OTG and USBPHYC nodes
-
-## Historical files not used
-
-The following former working-tree files are not active BR2_EXTERNAL inputs:
-
-```text
-genimage.cfg.bak
-linux.config.before-usb-gadget
-patches-linux-5.10-backup/*
-```
-
-The old Linux 5.10 DWC2 reset workaround is historical only and is not required by the validated Linux 6.6 USBPHYC/UTMI path.
-
-## Validated end-to-end result
+Validated end-to-end result:
 
 ```text
 clean recursive clone
     -> pinned Buildroot 2026.05.1
-    -> BR2_EXTERNAL defconfig
+    -> buildroot_external/ BR2_EXTERNAL
     -> Linux 6.6 build
     -> validated DTB/GPT/DEVBOOT
     -> flash sdcard.img
@@ -276,4 +106,4 @@ clean recursive clone
     -> Buildroot login shell
 ```
 
-This repository-owned path is now authoritative.
+The old modified upstream Buildroot checkout and historical 5.10 backup files are not active project inputs.

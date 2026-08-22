@@ -4,17 +4,13 @@
 
 Validated through the repository-owned BR2_EXTERNAL tree.
 
-The generated SD-card image contains a 64 MiB FAT partition named `devboot` in addition to the normal rootfs partition.
-
-`DEVBOOT` is a convenience/debug partition only. Normal U-Boot boot remains from partition 4 (`rootfs`) using `/boot/extlinux/extlinux.conf`.
+The generated SD-card image contains a 64 MiB FAT partition named `devboot` in addition to the normal rootfs partition. `DEVBOOT` is a convenience/debug partition only; normal U-Boot boot remains from partition 4 (`rootfs`).
 
 ## Project-owned input
 
 ```text
-buildroot/board/odyssey/genimage.cfg
+buildroot_external/board/odyssey/genimage.cfg
 ```
-
-The project defconfig points the Buildroot post-image genimage invocation to this BR2_EXTERNAL-owned configuration.
 
 ## Validated GPT layout
 
@@ -39,14 +35,6 @@ Validated with:
 ./scripts/verify-image.sh
 ```
 
-Representative output:
-
-```text
-Volume in drive : is DEVBOOT
-zImage
-stm32mp157c-odyssey.dtb
-```
-
 ## Boot authority
 
 The normal boot sequence remains:
@@ -58,8 +46,6 @@ Retrieving file: /boot/zImage
 Retrieving file: /boot/stm32mp157c-odyssey.dtb
 ```
 
-Therefore modifications to DEVBOOT alone do not change the normal boot path.
-
 ## Generated metadata
 
 The FAT volume serial and file timestamps vary between clean builds unless deterministic-build controls are added. This affects byte-level image hashes but not the validated DEVBOOT structure or function.
@@ -69,7 +55,7 @@ The FAT volume serial and file timestamps vary between clean builds unless deter
 The authoritative genimage layout is:
 
 ```text
-buildroot/board/odyssey/genimage.cfg
+buildroot_external/board/odyssey/genimage.cfg
 ```
 
 Do not maintain a duplicate project genimage configuration inside an upstream Buildroot checkout.

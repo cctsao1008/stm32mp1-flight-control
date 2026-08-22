@@ -4,7 +4,7 @@ set -u
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILDROOT_DIR="${ROOT_DIR}/third_party/buildroot"
-EXTERNAL_DIR="${ROOT_DIR}/buildroot"
+EXTERNAL_DIR="${ROOT_DIR}/buildroot_external"
 OUTPUT_DIR="${ROOT_DIR}/output/odyssey"
 DEFCONFIG="stm32mp1_flight_odyssey_defconfig"
 JOBS="${JOBS:-8}"
@@ -18,8 +18,8 @@ if [[ ! -f "${BUILDROOT_DIR}/Makefile" ]]; then
 fi
 
 if [[ ! -f "${EXTERNAL_DIR}/configs/${DEFCONFIG}" ]]; then
-    echo "ERROR: ${EXTERNAL_DIR}/configs/${DEFCONFIG} is not present yet."
-    echo "Import the validated Odyssey Buildroot configuration before using this wrapper."
+    echo "ERROR: ${EXTERNAL_DIR}/configs/${DEFCONFIG} is not present."
+    echo "The project BR2_EXTERNAL tree should be under buildroot_external/."
     exit 1
 fi
 

@@ -16,7 +16,7 @@ The Odyssey Buildroot platform is reproduced from this repository using a pinned
 
 ```text
 third_party/buildroot/     Buildroot 2026.05.1 submodule
-buildroot/                 project BR2_EXTERNAL
+buildroot_external/        project BR2_EXTERNAL
 scripts/                   build / clean / verify
 output/odyssey/            generated output
 ```
@@ -53,23 +53,11 @@ U-Boot 2021.10
     -> Buildroot login shell
 ```
 
-Project-specific Buildroot changes belong under `buildroot/`; do not maintain duplicate changes inside the upstream Buildroot submodule or another upstream working tree.
+Project-specific Buildroot changes belong under `buildroot_external/`; do not maintain duplicate changes inside the upstream Buildroot submodule or another upstream working tree.
 
 ## Documentation
 
 See `docs/README.md` for the documentation index.
-
-Key platform documents include:
-
-- `docs/odyssey-known-good-baseline.md`
-- `docs/odyssey-buildroot-submodule-workflow.md`
-- `docs/odyssey-buildroot-build-flow.md`
-- `docs/odyssey-buildroot-modification-map.md`
-- `docs/odyssey-fresh-clone-reproduction.md`
-- `docs/odyssey-usb-cdc-acm-bringup.md`
-- `docs/raspilot-v1.1-hardware-reference.md`
-- `docs/raspilot-vs-stm32mp1-architecture.md`
-- `docs/raspilot-reference-mapping.md`
 
 ## Current platform baseline
 

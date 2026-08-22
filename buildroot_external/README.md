@@ -6,7 +6,7 @@ This directory owns the project-specific Buildroot configuration for the Seeed O
 
 ```text
 third_party/buildroot/     pinned upstream Buildroot 2026.05.1 submodule
-buildroot/                 this project-owned BR2_EXTERNAL tree
+buildroot_external/        this project-owned BR2_EXTERNAL tree
 scripts/                   build / clean / verify wrappers
 output/odyssey/            generated output
 ```
@@ -37,21 +37,11 @@ board/odyssey/overlay/etc/inittab
 board/odyssey/overlay/etc/init.d/S50usb-acm
 ```
 
-## Build
+## Build / Verify / Clean
 
 ```bash
 ./scripts/build.sh
-```
-
-## Verify
-
-```bash
 ./scripts/verify-image.sh
-```
-
-## Clean
-
-```bash
 ./scripts/clean.sh
 ```
 
@@ -74,14 +64,6 @@ Buildroot login shell over USB-C
 Do not maintain duplicate project changes inside `third_party/buildroot/` or another upstream Buildroot checkout.
 
 The old modified `~/github/buildroot-2026.05.1` tree may be retained only as historical/debug evidence.
-
-Historical files such as the following are not active project inputs:
-
-```text
-genimage.cfg.bak
-linux.config.before-usb-gadget
-patches-linux-5.10-backup/*
-```
 
 ## Deterministic-build note
 

@@ -2,7 +2,7 @@
 
 ## Odyssey STM32MP157C Buildroot Platform
 
-The repository-owned Buildroot platform uses a pinned Buildroot 2026.05.1 submodule plus a validated `BR2_EXTERNAL` tree. The migration from the former modified upstream working tree is complete and hardware-validated.
+The repository-owned Buildroot platform uses a pinned Buildroot 2026.05.1 submodule under `third_party/buildroot/` plus the validated project `BR2_EXTERNAL` tree under `buildroot_external/`. The migration from the former modified upstream working tree is complete and hardware-validated.
 
 Primary documents:
 
@@ -22,7 +22,7 @@ Validated end-to-end platform path:
 ```text
 clean recursive clone
     -> pinned Buildroot 2026.05.1
-    -> project BR2_EXTERNAL
+    -> buildroot_external/ BR2_EXTERNAL
     -> Linux 6.6 image
     -> Odyssey boot from PARTLABEL=rootfs
     -> USBPHYC / DWC2 peripheral

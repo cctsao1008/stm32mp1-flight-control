@@ -11,7 +11,7 @@ stm32mp1-flight-control/
         |      Buildroot 2026.05.1
         |      pinned commit cb857ba...
         |
-        +-- buildroot/
+        +-- buildroot_external/
         |      project defconfig
         |      kernel config
         |      Linux patch
@@ -22,25 +22,12 @@ stm32mp1-flight-control/
                |
                v
         output/odyssey/
-               |
-               +-- build/
-               +-- host/
-               +-- target/
-               +-- images/
-                      |
-                      +-- tf-a-stm32mp157c-odyssey.stm32
-                      +-- u-boot.stm32
-                      +-- zImage
-                      +-- stm32mp157c-odyssey.dtb
-                      +-- rootfs.ext4
-                      +-- devboot.vfat
-                      +-- sdcard.img
 ```
 
 ## Configuration flow
 
 ```text
-buildroot/configs/stm32mp1_flight_odyssey_defconfig
+buildroot_external/configs/stm32mp1_flight_odyssey_defconfig
         |
         +-- Linux 6.6
         +-- U-Boot 2021.10
@@ -65,9 +52,9 @@ so persistent project files are not stored inside upstream Buildroot.
 ## Linux flow
 
 ```text
-buildroot/board/odyssey/linux.config
+buildroot_external/board/odyssey/linux.config
         +
-buildroot/board/odyssey/patches/linux/9999-odyssey-enable-fs-usb-device.patch
+buildroot_external/board/odyssey/patches/linux/9999-odyssey-enable-fs-usb-device.patch
         |
         v
 Buildroot Linux 6.6 source
@@ -100,7 +87,7 @@ The final DTB SHA256 is stable across repeated clean builds:
 ```text
 Buildroot target skeleton/packages
         +
-buildroot/board/odyssey/overlay/
+buildroot_external/board/odyssey/overlay/
         |
         +-- boot/extlinux/extlinux.conf
         +-- etc/inittab
@@ -130,7 +117,7 @@ rootfs.ext4
 zImage
 DTB
         +
-buildroot/board/odyssey/genimage.cfg
+buildroot_external/board/odyssey/genimage.cfg
         |
         v
 sdcard.img
@@ -207,4 +194,4 @@ Functional reproduction from source is validated.
 
 Full byte-for-byte image determinism is separate work because the current build embeds or generates timestamps, filesystem UUIDs, FAT metadata, and GPT GUIDs.
 
-The repository-owned BR2_EXTERNAL tree is authoritative; do not maintain duplicate project changes inside an upstream Buildroot working tree.
+The repository-owned `buildroot_external/` tree is authoritative; do not maintain duplicate project changes inside an upstream Buildroot working tree.
