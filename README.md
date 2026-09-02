@@ -1,13 +1,37 @@
 # STM32MP1 Flight Control
 
-Experimental flight-control platform work based on the Seeed Studio Odyssey STM32MP157C, using the STM32MP1 heterogeneous architecture:
+Experimental flight-control platform based on the Seeed Studio Odyssey STM32MP157C and the STM32MP1 heterogeneous architecture:
 
 - Cortex-A7 / Linux for platform services, configuration, logging, telemetry, and development-time sensor bring-up
-- Cortex-M4 for deterministic sensor acquisition, timestamping, actuator timing, and future hard real-time control functions
+- Cortex-M4 for deterministic sensor acquisition, timestamping, actuator timing, and hard real-time control functions
+
+## System partition
+
+```text
+Cortex-A7 / Linux
+    platform services
+    configuration
+    logging
+    telemetry
+    sensor integration
+          |
+          | IPC / shared platform resources
+          v
+Cortex-M4
+    deterministic acquisition
+    timestamping
+    actuator timing
+    real-time control
+          |
+          v
+Sensors / Actuators
+```
+
+The architecture separates Linux-side platform services from deterministic MCU-side control responsibilities while using the shared STM32MP1 device as one flight-control platform.
 
 ## Buildroot platform
 
-The validated Odyssey platform is built from:
+The Odyssey platform is built from:
 
 ```text
 third_party/buildroot/     pinned upstream Buildroot 2026.05.1 submodule
@@ -16,7 +40,7 @@ scripts/                   build / clean / verify wrappers
 output/odyssey/            generated output
 ```
 
-The project-owned `buildroot_external/` tree is authoritative for Odyssey-specific Buildroot inputs. Do not maintain duplicate project changes inside the upstream Buildroot submodule.
+The project-owned `buildroot_external/` tree is authoritative for Odyssey-specific Buildroot inputs. Project changes are kept outside the upstream Buildroot submodule.
 
 Standard build workflow:
 
@@ -27,11 +51,11 @@ cd stm32mp1-flight-control
 ./scripts/verify-image.sh
 ```
 
-The project defconfig enables Buildroot reproducible-build mode. `scripts/build.sh` derives `SOURCE_DATE_EPOCH` from the current repository commit unless explicitly supplied by the caller. See `docs/odyssey-reproducible-build.md` for the deterministic-build policy and qualification procedure.
+The project defconfig enables Buildroot reproducible-build mode. `scripts/build.sh` derives `SOURCE_DATE_EPOCH` from the repository commit unless explicitly supplied by the caller.
 
-## Validated platform baseline
+See `docs/odyssey-reproducible-build.md` for the deterministic-build policy and qualification procedure.
 
-Current validated functional baseline:
+## Platform baseline
 
 ```text
 Buildroot 2026.05.1
@@ -41,7 +65,7 @@ TF-A v2.5
 root=PARTLABEL=rootfs rootwait
 ```
 
-The USB-C device path is validated through:
+The USB-C device path is:
 
 ```text
 STM32MP15 USB FS PA11/PA12
@@ -55,19 +79,6 @@ STM32MP15 USB FS PA11/PA12
 
 Detailed platform documentation is indexed under `docs/README.md`.
 
-## Flight-control development direction
+## Hardware reference
 
-The near-term development sequence is:
-
-```text
-platform baseline
-    -> deterministic/reproducible build
-    -> Odyssey/RasPilot I/O resource mapping
-    -> Cortex-A7/Linux sensor bring-up
-    -> measured sample-rate / latency / jitter characterization
-    -> Cortex-M4 resource ownership and deterministic acquisition
-    -> A7/M4 IPC
-    -> AHRS / control integration
-```
-
-RasPilot v1.1 is used as a hardware/reference architecture source; it is not assumed to define the final STM32MP1 flight-control architecture.
+RasPilot v1.1 is used as a hardware and architecture reference for I/O-resource study on the STM32MP1 platform.
